@@ -1,6 +1,7 @@
 package com.example.data
 
 import android.util.Log
+import androidx.room.withTransaction
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -165,7 +166,7 @@ class StockRepository(private val db: FamilyDatabase) {
                 val json = org.json.JSONObject(bodyString)
                 val chart = json.optJSONObject("chart") ?: return@use null
                 val result = chart.optJSONArray("result") ?: return@use null
-                if (result != null && result.length() > 0) {
+                if (result.length() > 0) {
                     val meta = result.getJSONObject(0).optJSONObject("meta") ?: return@use null
                     val price = meta.optDouble("regularMarketPrice", Double.NaN)
                     val previousClose = meta.optDouble("chartPreviousClose", price)
@@ -416,6 +417,17 @@ class StockRepository(private val db: FamilyDatabase) {
     suspend fun removeStockById(id: Int) {
         withContext(Dispatchers.IO) {
             db.stockDao().deleteStock(id)
+        }
+    }
+
+    suspend fun replaceStocksForGroup(groupId: String, stocks: List<StockAsset>) {
+        withContext(Dispatchers.IO) {
+            db.withTransaction {
+                db.stockDao().deleteStocksForGroup(groupId)
+                stocks.forEach { stock ->
+                    db.stockDao().insertStock(stock.copy(groupId = groupId))
+                }
+            }
         }
     }
 

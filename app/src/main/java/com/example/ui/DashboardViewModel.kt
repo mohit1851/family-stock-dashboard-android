@@ -965,10 +965,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             if (parsedAssets.isNotEmpty()) {
-                db.stockDao().deleteAllStocks()
-                for (asset in parsedAssets) {
-                    db.stockDao().insertStock(asset)
-                }
+                repository.replaceStocksForGroup(currentG, parsedAssets)
 
                 // Put a system notification
                 repository.insertChatMessage(
@@ -1106,10 +1103,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             if (parsedAssets.isNotEmpty()) {
-                db.stockDao().deleteAllStocks()
-                for (asset in parsedAssets) {
-                    db.stockDao().insertStock(asset)
-                }
+                repository.replaceStocksForGroup(currentG, parsedAssets)
                 repository.insertChatMessage("System Ledger", "Imported ${parsedAssets.size} assets from Kite XLSX statement.", groupId = currentG)
                 _userFeedback.value = "Successfully imported ${parsedAssets.size} stocks!"
                 for (asset in parsedAssets) { viewModelScope.launch { repository.fetchLiveStockData(asset.symbol) } }

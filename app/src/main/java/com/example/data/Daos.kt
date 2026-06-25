@@ -23,6 +23,9 @@ interface StockDao {
 
     @Query("DELETE FROM stock_assets")
     suspend fun deleteAllStocks()
+
+    @Query("DELETE FROM stock_assets WHERE groupId = :groupId")
+    suspend fun deleteStocksForGroup(groupId: String)
 }
 
 @Dao
@@ -99,5 +102,4 @@ interface WatchlistDao {
     @Query("DELETE FROM watchlist_items")
     suspend fun deleteAllWatchlistItems()
 }
-
 
