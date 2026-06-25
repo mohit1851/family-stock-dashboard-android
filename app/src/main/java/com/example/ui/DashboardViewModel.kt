@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import org.apache.poi.ss.usermodel.*
 import java.io.InputStream
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -843,144 +842,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun performCsvImport(csvText: String) {
         val currentG = _currentGroup.value?.groupId ?: "SHARMA_GROUP"
         try {
-            val lines = csvText.lineSequence()
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
-                .toList()
-            if (lines.isEmpty()) {
-                _userFeedback.value = "Selected file is empty!"
-                return
-            }
-
-            // Parse headers
-            val firstLine = lines.first()
-            val delimiter = when {
-                firstLine.contains(";") -> ";"
-                firstLine.contains("\t") -> "\t"
-                else -> ","
-            }
-            
-            // Helper to clean quotes
-            fun String.cleanCsvValue(): String {
-                return this.replace("\"", "").replace("'", "").trim()
-            }
-
-            val headers = firstLine.split(delimiter).map { it.cleanCsvValue().lowercase() }
-
-            var symbolIdx = -1
-            var nameIdx = -1
-            var sharesIdx = -1
-            var avgPriceIdx = -1
-            var currentPriceIdx = -1
-
-            // Attempt header matching based on common prefixes/suffixes
-            for ((index, header) in headers.withIndex()) {
-                when {
-                    header.contains("symbol") || header.contains("ticker") || header.contains("stock") || header.contains("instrument") || header.contains("code") -> {
-                        symbolIdx = index
-                    }
-                    header == "name" || header.contains("company") || header.contains("description") || header.contains("security") -> {
-                        nameIdx = index
-                    }
-                    header.contains("share") || header.contains("quantity") || header.contains("qty") || header.contains("vol") || header.contains("size") || header.contains("units") -> {
-                        sharesIdx = index
-                    }
-                    (header.contains("buy") || header.contains("purchase") || header.contains("avg") || header.contains("cost") || header.contains("price") || header.contains("rate") || header.contains("entry")) 
-                            && !header.contains("current") && !header.contains("market") && !header.contains("last") && !header.contains("cmp") && !header.contains("live") -> {
-                        avgPriceIdx = index
-                    }
-                    header.contains("current") || header.contains("market") || header.contains("last") || header.contains("live") || header.contains("cmp") -> {
-                        currentPriceIdx = index
-                    }
-                }
-            }
-
-            // If we didn't match basic columns, guess by standard layouts:
-            // 0: Symbol, 1: Name, 2: Shares, 3: AvgPrice, 4: CurrentPrice
-            val hasHeaders = symbolIdx != -1 || sharesIdx != -1 || avgPriceIdx != -1
-            val startLineIdx = if (hasHeaders) 1 else 0
-
-            val parsedAssets = mutableListOf<StockAsset>()
-
-            for (i in startLineIdx until lines.size) {
-                val line = lines[i]
-                val parts = line.split(delimiter).map { it.cleanCsvValue() }
-                if (parts.size < 2) continue
-
-                val symbol = if (hasHeaders && symbolIdx != -1 && symbolIdx < parts.size) {
-                    parts[symbolIdx].uppercase()
-                } else {
-                    parts.getOrNull(0)?.uppercase() ?: ""
-                }
-                if (symbol.isBlank() || symbol.toDoubleOrNull() != null || symbol.lowercase() == "symbol" || symbol.lowercase() == "ticker") continue
-
-                val name = if (hasHeaders && nameIdx != -1 && nameIdx < parts.size) {
-                    parts[nameIdx]
-                } else if (!hasHeaders && parts.size > 1) {
-                    parts.getOrNull(1) ?: "$symbol Corporation"
-                } else {
-                    "$symbol Corporation"
-                }
-
-                // Clean numeric string (remove currency symbol, commas, etc.)
-                fun String.toCleanDouble(): Double? {
-                    val cleaned = this.replace(Regex("[^0-9.-]"), "")
-                    return cleaned.toDoubleOrNull()
-                }
-
-                val shares = if (hasHeaders && sharesIdx != -1 && sharesIdx < parts.size) {
-                    parts[sharesIdx].toCleanDouble() ?: 1.0
-                } else {
-                    parts.getOrNull(2)?.toCleanDouble() ?: parts.getOrNull(1)?.toCleanDouble() ?: 1.0
-                }
-
-                val avgPrice = if (hasHeaders && avgPriceIdx != -1 && avgPriceIdx < parts.size) {
-                    parts[avgPriceIdx].toCleanDouble() ?: 100.0
-                } else {
-                    parts.getOrNull(3)?.toCleanDouble() ?: parts.getOrNull(2)?.toCleanDouble() ?: 100.0
-                }
-
-                val currentPrice = if (hasHeaders && currentPriceIdx != -1 && currentPriceIdx < parts.size) {
-                    parts[currentPriceIdx].toCleanDouble() ?: avgPrice
-                } else {
-                    parts.getOrNull(4)?.toCleanDouble() ?: avgPrice
-                }
-
-                parsedAssets.add(
-                    StockAsset(
-                        symbol = symbol,
-                        name = name,
-                        shares = shares,
-                        avgPrice = avgPrice,
-                        currentPrice = currentPrice,
-                        dailyChangePercentage = 0.0,
-                        groupId = currentG
-                    )
-                )
-            }
-
-            if (parsedAssets.isNotEmpty()) {
-                repository.replaceStocksForGroup(currentG, parsedAssets)
-
-                // Put a system notification
-                repository.insertChatMessage(
-                    "System Ledger",
-                    "Imported ${parsedAssets.size} assets from statement CSV successfully. Synched holding allocations instantly.",
-                    groupId = currentG
-                )
-                _userFeedback.value = "Successfully imported ${parsedAssets.size} stocks!"
-                
-                // Trigger live sync to pull real live prices
-                for (asset in parsedAssets) {
-                    viewModelScope.launch {
-                        repository.fetchLiveStockData(asset.symbol)
-                    }
-                }
-                
-                runAIPortfolioSummary()
-            } else {
-                _userFeedback.value = "Failed to parse any stocks from CSV. Please check headers."
-            }
+            val parsedAssets = PortfolioImportParser.parseCsv(csvText, currentG)
+            finishPortfolioImport(parsedAssets, currentG, "statement CSV")
         } catch (e: Exception) {
             Log.e("DashboardViewModel", "Error parsing CSV file", e)
             _userFeedback.value = "Failed to parse CSV: ${e.message}"
@@ -996,120 +859,31 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun performXlsxImport(inputStream: InputStream) {
         val currentG = _currentGroup.value?.groupId ?: "SHARMA_GROUP"
         try {
-            val workbook = WorkbookFactory.create(inputStream)
-            val sheet = workbook.getSheetAt(0)
-            val rows = sheet.iterator()
-            val formatter = DataFormatter()
-
-            if (!rows.hasNext()) {
-                _userFeedback.value = "Selected file is empty!"
-                return
-            }
-
-            // Find header row (Kite usually has headers around row 22-24)
-            var headerRow: Row? = null
-            while (rows.hasNext()) {
-                val r = rows.next()
-                var hasSymbol = false
-                var hasQty = false
-                for (cell in r) {
-                    val cellValue = formatter.formatCellValue(cell).lowercase()
-                    if (cellValue.contains("symbol") || cellValue.contains("ticker")) hasSymbol = true
-                    if (cellValue.contains("quantity") || cellValue.contains("qty")) hasQty = true
-                }
-                if (hasSymbol && hasQty) {
-                    headerRow = r
-                    break
-                }
-            }
-
-            if (headerRow == null) {
-                _userFeedback.value = "No portfolio data headers found in XLSX!"
-                return
-            }
-
-            var symbolIdx = -1
-            var nameIdx = -1
-            var sharesIdx = -1
-            var avgPriceIdx = -1
-            var currentPriceIdx = -1
-
-            for (i in 0 until headerRow.lastCellNum) {
-                val header = formatter.formatCellValue(headerRow.getCell(i)).lowercase().trim()
-                when {
-                    header.contains("symbol") || header == "ticker" || header == "instrument" -> symbolIdx = i
-                    header.contains("name") || header.contains("company") || header.contains("security") || header == "isin" -> {
-                        if (nameIdx == -1) nameIdx = i
-                    }
-                    header.contains("quantity") || header.contains("qty") || header.contains("available") -> {
-                        if (sharesIdx == -1) sharesIdx = i
-                    }
-                    header.contains("average") || header.contains("avg") || header.contains("buy") || header.contains("cost") || header == "rate" -> {
-                        if (avgPriceIdx == -1) avgPriceIdx = i
-                    }
-                    header.contains("closing") || header.contains("last") || header.contains("cmp") || header.contains("close") || header.contains("market") -> {
-                        if (currentPriceIdx == -1) currentPriceIdx = i
-                    }
-                }
-            }
-
-            val parsedAssets = mutableListOf<StockAsset>()
-            
-            while (rows.hasNext()) {
-                val row = rows.next()
-                
-                fun getCleanString(idx: Int): String? {
-                    if (idx == -1) return null
-                    val cell = row.getCell(idx) ?: return null
-                    return formatter.formatCellValue(cell).trim()
-                }
-
-                val symbol = getCleanString(symbolIdx)?.uppercase() ?: ""
-                // Skip header duplicates or empty symbols or ISINs that look like symbols
-                if (symbol.isBlank() || symbol == "SYMBOL" || symbol == "TICKER" || symbol.length > 20) continue
-                // If it's a number, it's not a ticker
-                if (symbol.toDoubleOrNull() != null) continue
-
-                val name = getCleanString(nameIdx) ?: "$symbol Corp"
-                
-                fun String?.toCleanDouble(default: Double = 0.0): Double {
-                    if (this == null) return default
-                    val cleaned = this.replace(Regex("[^0-9.-]"), "")
-                    return cleaned.toDoubleOrNull() ?: default
-                }
-
-                val shares = getCleanString(sharesIdx).toCleanDouble(0.0)
-                val avgPrice = getCleanString(avgPriceIdx).toCleanDouble(0.0)
-                val currentPrice = getCleanString(currentPriceIdx).toCleanDouble(avgPrice)
-
-                if (shares > 0) {
-                    parsedAssets.add(
-                        StockAsset(
-                            symbol = symbol,
-                            name = name,
-                            shares = shares,
-                            avgPrice = avgPrice,
-                            currentPrice = currentPrice,
-                            dailyChangePercentage = 0.0,
-                            groupId = currentG
-                        )
-                    )
-                }
-            }
-
-            if (parsedAssets.isNotEmpty()) {
-                repository.replaceStocksForGroup(currentG, parsedAssets)
-                repository.insertChatMessage("System Ledger", "Imported ${parsedAssets.size} assets from Kite XLSX statement.", groupId = currentG)
-                _userFeedback.value = "Successfully imported ${parsedAssets.size} stocks!"
-                for (asset in parsedAssets) { viewModelScope.launch { repository.fetchLiveStockData(asset.symbol) } }
-                runAIPortfolioSummary()
-            } else {
-                _userFeedback.value = "No valid stock records found in XLSX! (Parsed 0 assets)"
-            }
+            val parsedAssets = PortfolioImportParser.parseXlsx(inputStream, currentG)
+            finishPortfolioImport(parsedAssets, currentG, "Kite XLSX statement")
         } catch (e: Exception) {
             Log.e("DashboardViewModel", "Error parsing Kite XLSX file", e)
             _userFeedback.value = "Failed to parse XLSX: ${e.message}"
         }
+    }
+
+    private suspend fun finishPortfolioImport(parsedAssets: List<StockAsset>, groupId: String, sourceLabel: String) {
+        if (parsedAssets.isEmpty()) {
+            _userFeedback.value = "No valid stock records found in $sourceLabel."
+            return
+        }
+
+        repository.replaceStocksForGroup(groupId, parsedAssets)
+        repository.insertChatMessage(
+            "System Ledger",
+            "Imported ${parsedAssets.size} assets from $sourceLabel successfully.",
+            groupId = groupId
+        )
+        _userFeedback.value = "Successfully imported ${parsedAssets.size} stocks!"
+        for (asset in parsedAssets) {
+            viewModelScope.launch { repository.fetchLiveStockData(asset.symbol) }
+        }
+        runAIPortfolioSummary()
     }
 
     fun importPortfolioXlsx(inputStream: InputStream) {
