@@ -58,6 +58,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
     val singleStockAiText by viewModel.singleStockAiSummary.collectAsStateWithLifecycle()
     val isAiLoading by viewModel.isSingleStockAiLoading.collectAsStateWithLifecycle()
     val trendingStocks by viewModel.trendingStocks.collectAsStateWithLifecycle()
+    val stockPriceHistory by viewModel.stockPriceHistory.collectAsStateWithLifecycle()
 
     var searchQuery by remember { mutableStateOf("") }
 
@@ -472,7 +473,10 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                             .fillMaxWidth()
                             .height(150.dp)
                     ) {
-                        WavyPricePerformanceGraph(stockSymbol = stock.symbol)
+                        WavyPricePerformanceGraph(
+                            stockSymbol = stock.symbol,
+                            priceHistory = stockPriceHistory[stock.symbol.uppercase()].orEmpty()
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -856,18 +860,13 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
 }
 
 @Composable
-fun WavyPricePerformanceGraph(stockSymbol: String) {
-    val chartPoints = remember(stockSymbol) {
-        val seed = stockSymbol.hashCode()
-        val random = kotlin.random.Random(seed)
-        val points = mutableListOf<Float>()
-        var base = 100f
-        repeat(8) {
-            val fluctuation = (random.nextFloat() * 60f - 30f)
-            base = (base + fluctuation).coerceIn(30f, 130f)
-            points.add(base)
+fun WavyPricePerformanceGraph(stockSymbol: String, priceHistory: List<HistoricalPricePoint>) {
+    val chartValues = remember(stockSymbol, priceHistory) {
+        if (priceHistory.size >= 2) {
+            priceHistory.takeLast(60).map { it.price.toFloat() }
+        } else {
+            fallbackChartValues(stockSymbol)
         }
-        points
     }
 
     val primaryColor = BluePrimary
@@ -878,16 +877,24 @@ fun WavyPricePerformanceGraph(stockSymbol: String) {
             .fillMaxSize()
             .background(bgColor)
     ) {
+        if (chartValues.size < 2) return@Canvas
+
         val width = size.width
         val height = size.height
-        val totalSteps = chartPoints.size
-        val xStep = width / (totalSteps - 1)
+        val minPrice = chartValues.minOrNull() ?: return@Canvas
+        val maxPrice = chartValues.maxOrNull() ?: return@Canvas
+        val range = (maxPrice - minPrice).takeIf { it > 0f } ?: 1f
+        val verticalPadding = height * 0.12f
+        val drawableHeight = height - (verticalPadding * 2)
+        val chartPoints = chartValues.map { price ->
+            height - verticalPadding - (((price - minPrice) / range) * drawableHeight)
+        }
+        val xStep = width / (chartPoints.size - 1)
 
         val path = Path()
-        val startY = chartPoints[0]
-        path.moveTo(0f, startY)
+        path.moveTo(0f, chartPoints[0])
 
-        for (i in 1 until totalSteps) {
+        for (i in 1 until chartPoints.size) {
             val prevX = (i - 1) * xStep
             val prevY = chartPoints[i - 1]
             val currentX = i * xStep
@@ -907,13 +914,24 @@ fun WavyPricePerformanceGraph(stockSymbol: String) {
             style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
         )
 
-        val endPointX = width
-        val endPointY = chartPoints.last()
         drawCircle(
             color = primaryColor,
             radius = 5.dp.toPx(),
-            center = Offset(endPointX, endPointY)
+            center = Offset(width, chartPoints.last())
         )
     }
+}
+
+private fun fallbackChartValues(stockSymbol: String): List<Float> {
+    val seed = stockSymbol.hashCode()
+    val random = kotlin.random.Random(seed)
+    val points = mutableListOf<Float>()
+    var base = 100f
+    repeat(8) {
+        val fluctuation = (random.nextFloat() * 60f - 30f)
+        base = (base + fluctuation).coerceIn(30f, 130f)
+        points.add(base)
+    }
+    return points
 }
 

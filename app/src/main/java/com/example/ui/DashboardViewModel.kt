@@ -105,6 +105,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _stockNews = MutableStateFlow<List<NewsArticle>>(emptyList())
     val stockNews: StateFlow<List<NewsArticle>> = _stockNews.asStateFlow()
 
+    private val _stockPriceHistory = MutableStateFlow<Map<String, List<HistoricalPricePoint>>>(emptyMap())
+    val stockPriceHistory: StateFlow<Map<String, List<HistoricalPricePoint>>> = _stockPriceHistory.asStateFlow()
+
     // UI State tabs: 0 - Home, 1 - Research, 2 - Alerts, 3 - Settings
     private val _currentTab = MutableStateFlow(0)
     val currentTab: StateFlow<Int> = _currentTab.asStateFlow()
@@ -239,6 +242,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
 
+        viewModelScope.launch {
+            selectedStockSymbol.collect { symbol -> refreshStockPriceHistory(symbol) }
+        }
+
         // Start a continuous real-time price loop for the searched stock, with Screener updates
         viewModelScope.launch {
             while (currentCoroutineContext().isActive) {
@@ -356,6 +363,37 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val categoriesWithLiveData = liveTrending.map { it.category }.toSet()
         val fallbackForMissingCategories = fallbackTrendingStocks.filter { it.category !in categoriesWithLiveData }
         _trendingStocks.value = liveTrending + fallbackForMissingCategories
+    }
+
+    private suspend fun refreshStockPriceHistory(symbol: String) {
+        val cleanSymbol = symbol.uppercase().trim()
+        if (cleanSymbol.isBlank()) return
+
+        val liveHistory = repository.fetchHistoricalPrices(cleanSymbol)
+        val history = if (liveHistory.size >= 2) liveHistory else fallbackPriceHistory(cleanSymbol)
+        _stockPriceHistory.value = _stockPriceHistory.value + (cleanSymbol to history)
+    }
+
+    private fun fallbackPriceHistory(symbol: String): List<HistoricalPricePoint> {
+        val random = kotlin.random.Random(symbol.hashCode())
+        var base = when (symbol) {
+            "NIFTY" -> 23410.50
+            "RELIANCE" -> 2420.40
+            "TATAMOTORS" -> 962.15
+            "TCS" -> 3954.80
+            "HDFCBANK" -> 1582.40
+            "INFY" -> 1452.10
+            else -> random.nextDouble(50.0, 2500.0)
+        }
+
+        return List(30) { index ->
+            val movement = random.nextDouble(-2.0, 2.0)
+            base = (base * (1.0 + movement / 100.0)).coerceAtLeast(1.0)
+            HistoricalPricePoint(
+                date = "T-${29 - index}",
+                price = Math.round(base * 100.0) / 100.0
+            )
+        }
     }
 
     fun searchStock(query: String) {
