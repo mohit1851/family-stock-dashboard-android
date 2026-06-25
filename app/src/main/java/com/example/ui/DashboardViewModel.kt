@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -101,102 +102,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         users.filter { it.groupId == gId }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val stockNews: StateFlow<List<NewsArticle>> = combine(
-        stockAssets,
-        watchlistItems
-    ) { assets, watchlists ->
-        val symbols = (assets.map { it.symbol.uppercase() } + watchlists.map { it.symbol.uppercase() }).distinct()
-        
-        // We use a fixed seed for random per-symbol data so it stays consistent between minor flow emissions,
-        // but it will change periodically via the 'timer' logic below if we were using a true polling mechanism.
-        // For now, let's enhance the variety of headlines to feel like a real scrape.
-        
-        if (symbols.isEmpty()) {
-            listOf(
-                NewsArticle(
-                    id = "gen1",
-                    symbol = "MARKET",
-                    title = "Nifty 50 maintains strength near record highs; global markets steady",
-                    source = "ET Markets",
-                    summary = "Indices show resilience at higher levels as institutional flows remain positive. Analysts expect IT and Pharma to lead next leg.",
-                    timeStr = "Just now",
-                    sentiment = "Bullish"
-                ),
-                NewsArticle(
-                    id = "gen2",
-                    symbol = "GLOBAL",
-                    title = "Wall Street futures gain as inflation data boosts rate cut hopes",
-                    source = "Bloomberg",
-                    summary = "Treasury yields retreat after soft PPI data. Investors pivot back to growth stocks as macro-uncertainty clears slightly.",
-                    timeStr = "12 mins ago",
-                    sentiment = "Bullish"
-                )
-            )
-        } else {
-            symbols.flatMapIndexed { sIdx, sym ->
-                // Simulate 2 news articles per symbol for variety
-                List(2) { nIdx ->
-                    val totalIdx = sIdx * 2 + nIdx
-                    val sentiment = if (totalIdx % 3 == 0) "Bullish" else if (totalIdx % 3 == 1) "Neutral" else "Bearish"
-                    val source = when (totalIdx % 4) {
-                        0 -> "LiveMint"
-                        1 -> "Moneycontrol"
-                        2 -> "Business Standard"
-                        else -> "CNBC TV18"
-                    }
-                    val timeMinutes = (totalIdx + 1) * 7
-                    val timeStr = if (timeMinutes < 60) "$timeMinutes mins ago" else "${timeMinutes / 60}h ago"
-                    
-                    val (title, summary) = when (sym) {
-                        "RELIANCE" -> if (nIdx == 0) Pair(
-                            "Reliance share price targets upgraded by global brokerages; see new levels",
-                            "Energy-to-retail conglomerate RIL is seen as a key beneficiary of domestic demand recovery. Retail margins expected to expand 120bps."
-                        ) else Pair(
-                            "Reliance Jio adds 3.4 million subscribers in latest TRAI report",
-                            "Jio continues to dominate the Indian telecom space with superior network availability and aggressive data plans in tier-2 cities."
-                        )
-                        "HDFCBANK" -> if (nIdx == 0) Pair(
-                            "HDFC Bank Q1 results preview: Analysts expect robust loan growth",
-                            "The merged entity is likely to report stable NIMs as deposit mobilization gathers pace. Asset quality remains best-in-class."
-                        ) else Pair(
-                            "HDFC Bank to raise funds via infrastructure bonds; eyes green energy lending",
-                            "Board approves issuance of long-term bonds to fuel high-impact projects. Move aimed at long-term capital stability."
-                        )
-                        "TCS" -> if (nIdx == 0) Pair(
-                            "TCS wins multi-year deal with global retail giant for digital transformation",
-                            "India's largest IT exporter to manage cloud infrastructure and AI-driven supply chain optimization for the US-based retailer."
-                        ) else Pair(
-                            "TCS share price: Dividend yield and buyback potential keep stock attractive",
-                            "Despite global macro headwinds, TCS maintains a strong cash position. Management hints at consistent shareholder rewards."
-                        )
-                        "TATAMOTORS" -> if (nIdx == 0) Pair(
-                            "Tata Motors EV sales jump 42% YoY; Tiago.ev lead adoption",
-                            "The electric vehicle portfolio continues to scale rapidly as charging infrastructure improves across Indian highways."
-                        ) else Pair(
-                            "JLR reports highest-ever quarterly order book; Range Rover demand surge",
-                            "Supply chain bottlenecks for luxury division JLR are easing, leading to faster deliveries and improved cash flow from operations."
-                        )
-                        else -> if (nIdx == 0) Pair(
-                            "$sym stock hits 52-week high on high volume breakout",
-                            "Technical charts indicate a strong bullish momentum for $sym as it clears key resistance levels. RSI remains in the comfort zone."
-                        ) else Pair(
-                            "Brokerage report: $sym is a top pick in the mid-cap space for FY25",
-                            "Fund managers increase allocation to $sym citing sector tailwinds and reasonable valuations compared to historical averages."
-                        )
-                    }
-                    NewsArticle(
-                        id = "$sym-$nIdx",
-                        symbol = sym,
-                        title = title,
-                        source = source,
-                        timeStr = timeStr,
-                        summary = summary,
-                        sentiment = sentiment
-                    )
-                }
-            }.sortedBy { it.timeStr.contains("mins") }.take(15) // Keep it fresh
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _stockNews = MutableStateFlow<List<NewsArticle>>(emptyList())
+    val stockNews: StateFlow<List<NewsArticle>> = _stockNews.asStateFlow()
 
     // UI State tabs: 0 - Home, 1 - Research, 2 - Alerts, 3 - Settings
     private val _currentTab = MutableStateFlow(0)
@@ -314,6 +221,14 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
 
+        viewModelScope.launch {
+            combine(stockAssets, watchlistItems) { assets, watchlists ->
+                (assets.map { it.symbol.uppercase() } + watchlists.map { it.symbol.uppercase() }).distinct()
+            }
+                .distinctUntilChanged()
+                .collect { symbols -> refreshStockNews(symbols) }
+        }
+
         // Start a continuous real-time price loop for the searched stock, with Screener updates
         viewModelScope.launch {
             while (currentCoroutineContext().isActive) {
@@ -407,6 +322,25 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             } catch (e: Exception) {
                 Log.e("DashboardViewModel", "Failed to run Screener setup scrape on launch: ${e.message}")
             }
+        }
+    }
+
+    private suspend fun refreshStockNews(symbols: List<String>) {
+        if (symbols.isEmpty()) {
+            _stockNews.value = emptyList()
+            return
+        }
+
+        _stockNews.value = repository.fetchStockNews(symbols).map { item ->
+            NewsArticle(
+                id = item.id,
+                symbol = item.symbol,
+                title = item.title,
+                source = item.source,
+                timeStr = item.time,
+                summary = item.summary,
+                sentiment = item.sentiment
+            )
         }
     }
 
@@ -518,7 +452,43 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 repository.setVerificationSource(cleanQuery, "Live Yahoo Finance API (NSE)")
             }
 
-            // 2. Fetch fully live balance sheet ratios scraped from screener.in!
+            // 2. Fetch company details, fundamentals, and recent news from IndianAPI.
+            val stockDetails = repository.fetchStockDetails(cleanQuery)
+            if (stockDetails != null) {
+                val currentFetched = _searchedStock.value ?: initialResult
+                _searchedStock.value = currentFetched.copy(
+                    symbol = stockDetails.symbol,
+                    name = stockDetails.companyName,
+                    currentPrice = stockDetails.currentPrice?.let { Math.round(it * 100.0) / 100.0 } ?: currentFetched.currentPrice,
+                    dailyChangePercentage = stockDetails.percentChange?.let { Math.round(it * 100.0) / 100.0 } ?: currentFetched.dailyChangePercentage,
+                    peRatio = stockDetails.peRatio ?: currentFetched.peRatio,
+                    marketCap = stockDetails.marketCap ?: currentFetched.marketCap,
+                    dividendYield = stockDetails.dividendYield ?: currentFetched.dividendYield,
+                    roce = stockDetails.roce ?: currentFetched.roce,
+                    roe = stockDetails.roe ?: currentFetched.roe,
+                    bookValue = stockDetails.bookValue ?: currentFetched.bookValue,
+                    faceValue = stockDetails.faceValue ?: currentFetched.faceValue,
+                    high52w = stockDetails.yearHigh ?: currentFetched.high52w,
+                    low52w = stockDetails.yearLow ?: currentFetched.low52w,
+                    isScreenerSourced = true
+                )
+                repository.setVerificationSource(stockDetails.symbol, stockDetails.source)
+                if (stockDetails.recentNews.isNotEmpty()) {
+                    _stockNews.value = stockDetails.recentNews.map { item ->
+                        NewsArticle(
+                            id = item.id,
+                            symbol = item.symbol,
+                            title = item.title,
+                            source = item.source,
+                            timeStr = item.time,
+                            summary = item.summary,
+                            sentiment = item.sentiment
+                        )
+                    }
+                }
+            }
+
+            // 3. Fallback: fetch ratios scraped from screener.in where IndianAPI did not provide values.
             val screenerData = repository.scrapeScreenerRatios(cleanQuery)
             if (screenerData.isNotEmpty()) {
                 val currentFetched = _searchedStock.value ?: initialResult
@@ -534,9 +504,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     low52w = screenerData["low52w"] ?: currentFetched.low52w,
                     isScreenerSourced = true
                 )
-                repository.setVerificationSource(cleanQuery, "Live Screener.in Web Scraper + Yahoo Finance API")
+                if (stockDetails == null) {
+                    repository.setVerificationSource(cleanQuery, "Live Screener.in Web Scraper + Yahoo Finance API")
+                }
             } else {
-                if (liveData == null) {
+                if (liveData == null && stockDetails == null) {
                     repository.setVerificationSource(cleanQuery, "Verified Loop Simulator (Offline Fallback)")
                 }
             }

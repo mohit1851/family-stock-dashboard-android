@@ -53,6 +53,10 @@ class StockRepository(private val db: FamilyDatabase) {
     private val marketDataProvider = CompositeMarketDataProvider(
         listOf(liveMarketDataProvider, SimulatedMarketDataProvider())
     )
+    private val stockDetailsProvider = IndianApiStockDetailsProvider(
+        okHttpClient = okHttpClient,
+        apiKey = BuildConfig.STOCK_INDIAN_API_KEY
+    )
 
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("StockRepository"))
 
@@ -154,6 +158,18 @@ class StockRepository(private val db: FamilyDatabase) {
 
     suspend fun fetchLiveStockData(symbol: String): Pair<Double, Double>? = withContext(Dispatchers.IO) {
         liveMarketDataProvider.getQuote(symbol)?.let { it.price to it.changePercentage }
+    }
+
+    suspend fun fetchStockDetails(symbol: String): IndianStockDetails? = withContext(Dispatchers.IO) {
+        stockDetailsProvider.getStockDetails(symbol)
+    }
+
+    suspend fun fetchStockNews(symbols: List<String>): List<IndianStockNewsItem> = withContext(Dispatchers.IO) {
+        symbols.distinct()
+            .take(8)
+            .flatMap { symbol -> stockDetailsProvider.getStockDetails(symbol)?.recentNews.orEmpty() }
+            .distinctBy { it.id }
+            .take(20)
     }
 
     private suspend fun fetchBestEffortMarketQuote(
