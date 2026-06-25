@@ -137,8 +137,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _searchedStock = MutableStateFlow<SearchedStock?>(null)
     val searchedStock: StateFlow<SearchedStock?> = _searchedStock.asStateFlow()
 
-    // Trending Stocks for the search/research deck
-    private val _trendingStocks = MutableStateFlow<List<TrendingStock>>(
+    // Fallback market movers shown only when live mover endpoints are unavailable.
+    private val fallbackTrendingStocks =
         listOf(
             // Top Gainers
             TrendingStock("TCS", "Tata Consultancy Services Ltd", 3954.80, 2.45, "1.8M", "gainer"),
@@ -170,7 +170,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             TrendingStock("IDEA", "Vodafone Idea Ltd", 12.50, -2.10, "120.4M", "penny"),
             TrendingStock("IRFC", "Indian Railway Finance Corp", 172.50, 3.80, "18.9M", "penny")
         )
-    )
+
+    // Trending Stocks for the search/research deck
+    private val _trendingStocks = MutableStateFlow<List<TrendingStock>>(fallbackTrendingStocks)
     val trendingStocks: StateFlow<List<TrendingStock>> = _trendingStocks.asStateFlow()
 
     // AI summary and loading states
@@ -229,6 +231,14 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 .collect { symbols -> refreshStockNews(symbols) }
         }
 
+        viewModelScope.launch {
+            refreshTrendingStocks()
+            while (currentCoroutineContext().isActive) {
+                kotlinx.coroutines.delay(300000)
+                refreshTrendingStocks()
+            }
+        }
+
         // Start a continuous real-time price loop for the searched stock, with Screener updates
         viewModelScope.launch {
             while (currentCoroutineContext().isActive) {
@@ -259,21 +269,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
 
-        // Periodically simulate small movements on our trending lists to show active tick feeds
-        viewModelScope.launch {
-            while (currentCoroutineContext().isActive) {
-                kotlinx.coroutines.delay(11000)
-                val currentList = _trendingStocks.value
-                val updatedList = currentList.map { stock ->
-                    val multiplier = if (stock.category == "loser") -1 else 1
-                    val movement = (kotlin.random.Random.nextDouble() * 0.18 - 0.08) * multiplier
-                    val newPrice = Math.max(1.0, Math.round(stock.currentPrice * (1.0 + movement / 100.0) * 100.0) / 100.0)
-                    val newChange = Math.round((stock.changePercentage + movement) * 100.0) / 100.0
-                    stock.copy(currentPrice = newPrice, changePercentage = newChange)
-                }
-                _trendingStocks.value = updatedList
-            }
-        }
     }
 
     override fun onCleared() {
@@ -342,6 +337,25 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 sentiment = item.sentiment
             )
         }
+    }
+
+    private suspend fun refreshTrendingStocks() {
+        val liveMovers = repository.fetchMarketMovers()
+        if (liveMovers.isEmpty()) return
+
+        val liveTrending = liveMovers.map { mover ->
+            TrendingStock(
+                symbol = mover.symbol,
+                name = mover.companyName,
+                currentPrice = Math.round(mover.currentPrice * 100.0) / 100.0,
+                changePercentage = Math.round(mover.changePercentage * 100.0) / 100.0,
+                volume = mover.volume,
+                category = mover.category
+            )
+        }
+        val categoriesWithLiveData = liveTrending.map { it.category }.toSet()
+        val fallbackForMissingCategories = fallbackTrendingStocks.filter { it.category !in categoriesWithLiveData }
+        _trendingStocks.value = liveTrending + fallbackForMissingCategories
     }
 
     fun searchStock(query: String) {

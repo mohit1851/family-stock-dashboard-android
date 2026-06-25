@@ -57,6 +57,10 @@ class StockRepository(private val db: FamilyDatabase) {
         okHttpClient = okHttpClient,
         apiKey = BuildConfig.STOCK_INDIAN_API_KEY
     )
+    private val marketMoversProvider = IndianApiMarketMoversProvider(
+        okHttpClient = okHttpClient,
+        apiKey = BuildConfig.STOCK_INDIAN_API_KEY
+    )
 
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("StockRepository"))
 
@@ -170,6 +174,10 @@ class StockRepository(private val db: FamilyDatabase) {
             .flatMap { symbol -> stockDetailsProvider.getStockDetails(symbol)?.recentNews.orEmpty() }
             .distinctBy { it.id }
             .take(20)
+    }
+
+    suspend fun fetchMarketMovers(): List<IndianMarketMover> = withContext(Dispatchers.IO) {
+        marketMoversProvider.getMarketMovers()
     }
 
     private suspend fun fetchBestEffortMarketQuote(
