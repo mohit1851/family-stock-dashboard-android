@@ -29,9 +29,14 @@ An Android Jetpack Compose app for families to track a shared Indian stock portf
 1. Open the project in Android Studio.
 2. Create a local `.env` file from `.env.example`.
 3. Set `GEMINI_API_KEY` in `.env` if you want live Gemini summaries.
-4. Build and run the app with the included Gradle wrapper.
+4. Set `STOCK_INDIAN_API_KEY` in `.env` if you want IndianAPI market data.
+5. Build and run the app with the included Gradle wrapper.
 
 Do not commit `.env`, signing keys, local Android SDK paths, generated build folders, or downloaded tooling archives.
+
+## API Key Security
+
+API keys in Android apps are not truly secret because APKs can be decompiled. The local `.env` setup keeps keys out of GitHub, which is required for public repositories, but a production app should call a small backend/proxy that stores provider keys server-side and rate-limits requests per user/device.
 
 ## Project Status
 

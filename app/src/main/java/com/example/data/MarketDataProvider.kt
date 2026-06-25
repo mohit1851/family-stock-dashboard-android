@@ -3,6 +3,7 @@ package com.example.data
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -105,6 +106,62 @@ class YahooFinanceMarketDataProvider(
     }
 }
 
+class IndianApiMarketDataProvider(
+    private val okHttpClient: OkHttpClient,
+    private val apiKey: String
+) : MarketDataProvider {
+    override suspend fun getQuote(
+        symbol: String,
+        fallbackPrice: Double?,
+        fallbackChangePercentage: Double?
+    ): MarketQuote? = withContext(Dispatchers.IO) {
+        if (apiKey.isBlank() || apiKey == "MY_STOCK_INDIAN_API_KEY") return@withContext null
+
+        val cleanSymbol = symbol.uppercase().trim()
+        val url = BASE_URL.toHttpUrl().newBuilder()
+            .addPathSegment("stock")
+            .addQueryParameter("name", cleanSymbol)
+            .build()
+        val request = Request.Builder()
+            .url(url)
+            .header("X-Api-Key", apiKey)
+            .header("User-Agent", "FamilyStockDashboard/1.0")
+            .build()
+
+        try {
+            okHttpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "IndianAPI HTTP fail for $cleanSymbol: ${response.code}")
+                    return@use null
+                }
+
+                val json = JSONObject(response.body?.string() ?: return@use null)
+                val price = json.optJSONObject("currentPrice")?.let { currentPrice ->
+                    currentPrice.optNullableDouble("NSE") ?: currentPrice.optNullableDouble("BSE")
+                } ?: return@use null
+                val change = json.optNullableDouble("percentChange") ?: 0.0
+                val ticker = json.optString("tickerId", cleanSymbol).ifBlank { cleanSymbol }
+
+                MarketQuote(
+                    symbol = ticker.uppercase(),
+                    price = price.roundToPaise(),
+                    changePercentage = change.roundToPercent(),
+                    source = "Live IndianAPI Stock Market API",
+                    isLive = true
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching IndianAPI quote for $cleanSymbol: ${e.message}")
+            null
+        }
+    }
+
+    private companion object {
+        const val TAG = "IndianApiMarketData"
+        const val BASE_URL = "https://stock.indianapi.in"
+    }
+}
+
 class SimulatedMarketDataProvider : MarketDataProvider {
     override suspend fun getQuote(
         symbol: String,
@@ -149,3 +206,13 @@ class SimulatedMarketDataProvider : MarketDataProvider {
 
 private fun Double.roundToPaise(): Double = round(this * 100.0) / 100.0
 private fun Double.roundToPercent(): Double = round(this * 100.0) / 100.0
+
+private fun JSONObject.optNullableDouble(name: String): Double? {
+    if (!has(name) || isNull(name)) return null
+    return when (val value = opt(name)) {
+        is Number -> value.toDouble()
+        is String -> value.replace(",", "").toDoubleOrNull()
+        null -> null
+        else -> null
+    }
+}

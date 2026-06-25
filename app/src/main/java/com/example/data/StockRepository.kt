@@ -2,6 +2,7 @@ package com.example.data
 
 import android.util.Log
 import androidx.room.withTransaction
+import com.example.BuildConfig
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,7 +44,12 @@ class StockRepository(private val db: FamilyDatabase) {
         .readTimeout(6, TimeUnit.SECONDS)
         .build()
 
-    private val liveMarketDataProvider = YahooFinanceMarketDataProvider(okHttpClient)
+    private val liveMarketDataProvider = CompositeMarketDataProvider(
+        listOf(
+            IndianApiMarketDataProvider(okHttpClient, BuildConfig.STOCK_INDIAN_API_KEY),
+            YahooFinanceMarketDataProvider(okHttpClient)
+        )
+    )
     private val marketDataProvider = CompositeMarketDataProvider(
         listOf(liveMarketDataProvider, SimulatedMarketDataProvider())
     )
