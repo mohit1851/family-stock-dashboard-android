@@ -1,0 +1,28 @@
+# Android / Gradle
+*.iml
+.gradle/
+.kotlin/
+build/
+*/build/
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+
+# IDE / local tooling
+.idea/
+.vscode/
+.antigravity/
+.DS_Store
+
+# Secrets and signing material
+.env
+*.keystore
+*.jks
+debug.keystore
+
+# Downloaded tool archives / extracted distributions
+cmdline-tools.zip
+gradle.zip
+gradle-*.zip
+gradle-installation/
