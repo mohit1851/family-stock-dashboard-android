@@ -106,7 +106,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
         ) {
             Column(modifier = Modifier.padding(18.dp)) {
                 Text(
-                    text = "🔍 SEEK EQUITY MARKET INTEL",
+                    text = "EQUITY RESEARCH",
                     style = MaterialTheme.typography.labelSmall,
                     color = BluePrimary,
                     fontWeight = FontWeight.Bold,
@@ -114,7 +114,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Perform real-time asset query with simulated tick feeds. Select popular tickers or search any custom dynamic symbol.",
+                    text = "Search Indian equities and review live quotes, market movers, recent news, and historical price data where available.",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSubtle
                 )
@@ -207,12 +207,12 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Divider(color = BorderColor)
+                HorizontalDivider(color = BorderColor)
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Market Intelligence categories chooser
+                // Market data categories chooser
                 Text(
-                    text = "NSE MARKET PULSE & TRENDING DESK",
+                    text = "NSE MARKET MOVERS",
                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     color = BluePrimary,
                     letterSpacing = 0.5.sp
@@ -378,7 +378,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(text = "Active Equity Target Investigation", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
+                    Text(text = "Selected equity", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
                     Text(
                         text = activeStock?.name ?: "Configure Asset First",
                         style = MaterialTheme.typography.titleMedium,
@@ -441,7 +441,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                     ) {
                         Column {
                             Text(text = stock.symbol, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextDark)
-                            Text(text = "NSE Realtime Curve estimates", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
+                            Text(text = "Live quote with historical price context", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -454,7 +454,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Icon(
                                     imageVector = Icons.Default.Verified,
-                                    contentDescription = "Sanity Checked",
+                                    contentDescription = "Data source checked",
                                     tint = SoftGreen,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -482,7 +482,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
-                    Divider(color = BorderColor)
+                    HorizontalDivider(color = BorderColor)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // Full Metrics Grid styled beautifully with Material 3 spacing
@@ -490,14 +490,14 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Header for Screener statistics
+                        // Header for provider-backed fundamentals.
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "FUNDAMENTAL BI DATA (SCREENER.IN)",
+                                text = "FUNDAMENTAL DATA",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = BluePrimary,
                                 fontWeight = FontWeight.Bold,
@@ -511,7 +511,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Text(
-                                        text = "LIVE SCRAPED",
+                                        text = "LIVE DATA",
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                                         color = SoftGreen,
                                         fontWeight = FontWeight.Bold
@@ -653,9 +653,6 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                 }
             }
 
-            // --- Real-time Stock Data Sanity Check Security Shield Card ---
-            // Box removed as per request, replaced with green verified icon above near price.
-
             // Quick Invest & Alert Deck
             Card(
                 shape = RoundedCornerShape(24.dp),
@@ -664,7 +661,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
                     Text(
-                        text = "⚡ QUICK ACTION DECK: ${stock.symbol}",
+                        text = "QUICK ACTIONS: ${stock.symbol}",
                         style = MaterialTheme.typography.labelSmall,
                         color = SoftGreen,
                         fontWeight = FontWeight.Bold,
@@ -672,7 +669,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Instantly log transactions for family assets or configure automated triggers.",
+                        text = "Record a portfolio action or add this equity to the shared family watchlist.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSubtle
                     )
@@ -719,7 +716,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                                 text = {
                                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                         Text(
-                                            text = "Keep track of ${stock.symbol} jointly. Enter a target alert criteria price. System triggers a collaborative alert dialogue into the chat once hit.",
+                                            text = "Track ${stock.symbol} with the family. Enter a target price and the app will notify the group when the watchlist condition is met.",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = TextSubtle
                                         )
@@ -807,7 +804,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                                     color = TextDark
                                 )
                                 Text(
-                                    text = "AI-powered market intelligence for ${stock.symbol}",
+                                    text = "AI-generated research note for ${stock.symbol}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = TextSubtle
                                 )
@@ -836,7 +833,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = if (singleStockAiText.isEmpty()) "Tap the refresh button to generate real-time analyst insights for this asset using Gemini 1.5 Flash." else singleStockAiText,
+                            text = if (singleStockAiText.isEmpty()) "Tap refresh to generate a Gemini 1.5 Flash research note. Review it against the live market data above before acting." else singleStockAiText,
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 lineHeight = 22.sp,
                                 letterSpacing = 0.2.sp
@@ -856,7 +853,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                             Icon(Icons.Default.Verified, contentDescription = null, tint = SoftGreen, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Verified Gemini Intelligence",
+                                text = "Generated by Gemini",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = SoftGreen,
                                 fontWeight = FontWeight.Bold
