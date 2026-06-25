@@ -24,7 +24,7 @@ class IndianApiHistoricalDataProvider(
         val cleanSymbol = symbol.uppercase().trim()
         val url = BASE_URL.toHttpUrl().newBuilder()
             .addPathSegment("historical_data")
-            .addQueryParameter("symbol", cleanSymbol)
+            .addQueryParameter("stock_name", cleanSymbol)
             .addQueryParameter("period", "1yr")
             .addQueryParameter("filter", "price")
             .build()
