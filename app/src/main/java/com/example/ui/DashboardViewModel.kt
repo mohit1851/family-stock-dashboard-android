@@ -51,6 +51,7 @@ data class TrendingStock(
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
     private val db = FamilyDatabase.getDatabase(application)
     private val repository = StockRepository(db)
+    private val authUseCase = AuthUseCase(repository)
 
     // User session states
     private val _currentUser = MutableStateFlow<User?>(null)
@@ -295,53 +296,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     init {
         viewModelScope.launch {
             try {
-                // Pre-seed a default sandbox group
-                val existingGroup = repository.getGroupById("SHARMA_GROUP")
-                if (existingGroup == null) {
-                    repository.insertGroup(
-                        FamilyGroup(
-                            groupId = "SHARMA_GROUP",
-                            name = "Sharma Family Portfolio",
-                            inviteCode = "SHARMA-123",
-                            ownerUsername = "sharma"
-                        )
-                    )
-                }
-
-                // Pre-seed a default sandbox user
-                val existingUser = repository.getUserByUsername("sharma")
-                if (existingUser == null) {
-                    val sharmaCredential = PasscodeHasher.hash("1234")
-                    val dadCredential = PasscodeHasher.hash("1234")
-                    val momCredential = PasscodeHasher.hash("1234")
-                    repository.insertUser(
-                        User(
-                            username = "sharma",
-                            fullName = "Mohit Sharma",
-                            passwordHash = sharmaCredential.passwordHash,
-                            salt = sharmaCredential.salt,
-                            groupId = "SHARMA_GROUP"
-                        )
-                    )
-                    repository.insertUser(
-                        User(
-                            username = "dad_sharma",
-                            fullName = "Raj Kumar Sharma (Dad)",
-                            passwordHash = dadCredential.passwordHash,
-                            salt = dadCredential.salt,
-                            groupId = "SHARMA_GROUP"
-                        )
-                    )
-                    repository.insertUser(
-                        User(
-                            username = "mom_sharma",
-                            fullName = "Sarita Sharma (Mom)",
-                            passwordHash = momCredential.passwordHash,
-                            salt = momCredential.salt,
-                            groupId = "SHARMA_GROUP"
-                        )
-                    )
-                }
+                authUseCase.seedSandboxData()
             } catch (e: Exception) {
                 _userFeedback.value = "DB Seeding failed: ${e.message}"
             }
@@ -590,32 +545,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     // --- Secure User Authentication Actions ---
     fun registerNewUser(username: String, fullName: String, passcode: String) {
-        val cleanUser = username.lowercase().trim()
-        if (cleanUser.length < 3 || fullName.isBlank() || passcode.length < 4) {
-            _userFeedback.value = "Username: min 3 letters. Passcode: min 4 numbers."
-            return
-        }
-
         viewModelScope.launch {
             try {
-                val existing = repository.getUserByUsername(cleanUser)
-                if (existing != null) {
-                    _userFeedback.value = "Username already exists."
-                    return@launch
-                }
-
-                val credential = PasscodeHasher.hash(passcode)
-                val newUser = User(
-                    username = cleanUser,
-                    fullName = fullName.trim(),
-                    passwordHash = credential.passwordHash,
-                    salt = credential.salt,
-                    groupId = null
-                )
-                repository.insertUser(newUser)
-                _currentUser.value = newUser
-                _currentGroup.value = null
-                _userFeedback.value = "Successfully registered! Set up/join a family group next."
+                applyAuthResult(authUseCase.registerUser(username, fullName, passcode))
             } catch (e: Exception) {
                 _userFeedback.value = "Registration error: ${e.message}"
             }
@@ -623,40 +555,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun loginUser(username: String, passcode: String) {
-        val cleanUser = username.lowercase().trim()
-        if (cleanUser.isBlank()) {
-            _userFeedback.value = "Please enter a valid username."
-            return
-        }
         viewModelScope.launch {
             try {
-                val user = repository.getUserByUsername(cleanUser)
-                if (user == null) {
-                    _userFeedback.value = "Incorrect username or passcode."
-                    return@launch
-                }
-
-                if (PasscodeHasher.verify(passcode, user.passwordHash, user.salt)) {
-                    val authenticatedUser = if (PasscodeHasher.needsRehash(user.passwordHash)) {
-                        val credential = PasscodeHasher.hash(passcode)
-                        user.copy(passwordHash = credential.passwordHash, salt = credential.salt).also {
-                            repository.updateUser(it)
-                        }
-                    } else {
-                        user
-                    }
-                    _currentUser.value = authenticatedUser
-                    if (!authenticatedUser.groupId.isNullOrEmpty()) {
-                        val group = repository.getGroupById(authenticatedUser.groupId)
-                        _currentGroup.value = group
-                    } else {
-                        _currentGroup.value = null
-                    }
-                    _userFeedback.value = "Authenticated! Welcome back, ${authenticatedUser.fullName}."
-                    runAIPortfolioSummary()
-                } else {
-                    _userFeedback.value = "Incorrect passcode."
-                }
+                applyAuthResult(authUseCase.loginUser(username, passcode))
             } catch (e: Exception) {
                 _userFeedback.value = "Login failed: ${e.message}"
             }
@@ -671,40 +572,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     // --- Private Family Group Actions ---
     fun createFamilyGroup(groupName: String) {
-        val user = _currentUser.value
-        if (user == null) {
-            _userFeedback.value = "Authentication required."
-            return
-        }
-        if (groupName.isBlank()) {
-            _userFeedback.value = "Group name cannot be blank."
-            return
-        }
-
         viewModelScope.launch {
             try {
-                val gId = java.util.UUID.randomUUID().toString().take(8).uppercase()
-                val invCode = "SHA-$gId"
-                val newGroup = FamilyGroup(
-                    groupId = gId,
-                    name = groupName.trim(),
-                    inviteCode = invCode,
-                    ownerUsername = user.username
-                )
-                repository.insertGroup(newGroup)
-
-                val updatedUser = user.copy(groupId = gId)
-                repository.updateUser(updatedUser)
-                _currentUser.value = updatedUser
-                _currentGroup.value = newGroup
-
-                _userFeedback.value = "Family group formed! Code: $invCode"
-
-                repository.insertChatMessage(
-                    sender = "System",
-                    message = "Secure group formed by ${user.fullName}. Use code $invCode to invite your family members!",
-                    groupId = gId
-                )
+                applyAuthResult(authUseCase.createFamilyGroup(_currentUser.value, groupName))
             } catch (e: Exception) {
                 _userFeedback.value = "Failed to form group: ${e.message}"
             }
@@ -712,40 +582,27 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun joinFamilyGroup(inviteCode: String) {
-        val user = _currentUser.value
-        if (user == null) {
-            _userFeedback.value = "Authentication required."
-            return
-        }
-        val cleanCode = inviteCode.uppercase().trim()
-        if (cleanCode.isBlank()) {
-            _userFeedback.value = "Please insert an invitation code."
-            return
-        }
-
         viewModelScope.launch {
             try {
-                val group = repository.getGroupByInviteCode(cleanCode)
-                if (group == null) {
-                    _userFeedback.value = "Invalid group invitation code."
-                    return@launch
-                }
-
-                val updatedUser = user.copy(groupId = group.groupId)
-                repository.updateUser(updatedUser)
-                _currentUser.value = updatedUser
-                _currentGroup.value = group
-
-                _userFeedback.value = "Success! Linked to ${group.name} portfolio stream."
-
-                repository.insertChatMessage(
-                    sender = "System",
-                    message = "${user.fullName} joined the family circle.",
-                    groupId = group.groupId
-                )
-                runAIPortfolioSummary()
+                applyAuthResult(authUseCase.joinFamilyGroup(_currentUser.value, inviteCode))
             } catch (e: Exception) {
                 _userFeedback.value = "Failed to join group: ${e.message}"
+            }
+        }
+    }
+
+    private fun applyAuthResult(result: AuthActionResult) {
+        when (result) {
+            is AuthActionResult.Success -> {
+                _currentUser.value = result.user
+                _currentGroup.value = result.group
+                _userFeedback.value = result.message
+                if (result.refreshPortfolioSummary) {
+                    runAIPortfolioSummary()
+                }
+            }
+            is AuthActionResult.Error -> {
+                _userFeedback.value = result.message
             }
         }
     }
@@ -936,11 +793,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun deleteMember(username: String) {
         viewModelScope.launch {
-            val user = repository.getUserByUsername(username)
-            if (user != null) {
-                repository.updateUser(user.copy(groupId = null))
-                _userFeedback.value = "Member @$username removed from the family circle."
-            }
+            authUseCase.removeMember(username)?.let { _userFeedback.value = it }
         }
     }
 
