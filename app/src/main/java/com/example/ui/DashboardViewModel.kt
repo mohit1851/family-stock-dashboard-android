@@ -312,14 +312,15 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 // Pre-seed a default sandbox user
                 val existingUser = repository.getUserByUsername("sharma")
                 if (existingUser == null) {
-                    val salt = "sharma_salt"
-                    val hashed = hashPassword("1234", salt)
+                    val sharmaCredential = PasscodeHasher.hash("1234")
+                    val dadCredential = PasscodeHasher.hash("1234")
+                    val momCredential = PasscodeHasher.hash("1234")
                     repository.insertUser(
                         User(
                             username = "sharma",
                             fullName = "Mohit Sharma",
-                            passwordHash = hashed,
-                            salt = salt,
+                            passwordHash = sharmaCredential.passwordHash,
+                            salt = sharmaCredential.salt,
                             groupId = "SHARMA_GROUP"
                         )
                     )
@@ -327,8 +328,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         User(
                             username = "dad_sharma",
                             fullName = "Raj Kumar Sharma (Dad)",
-                            passwordHash = hashed,
-                            salt = salt,
+                            passwordHash = dadCredential.passwordHash,
+                            salt = dadCredential.salt,
                             groupId = "SHARMA_GROUP"
                         )
                     )
@@ -336,8 +337,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         User(
                             username = "mom_sharma",
                             fullName = "Sarita Sharma (Mom)",
-                            passwordHash = hashed,
-                            salt = salt,
+                            passwordHash = momCredential.passwordHash,
+                            salt = momCredential.salt,
                             groupId = "SHARMA_GROUP"
                         )
                     )
@@ -588,18 +589,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    // --- Secure Cryptographic Passcode Hashing ---
-    private fun hashPassword(password: String, salt: String): String {
-        return try {
-            val md = java.security.MessageDigest.getInstance("SHA-256")
-            val input = password + salt
-            val hashBytes = md.digest(input.toByteArray(Charsets.UTF_8))
-            hashBytes.joinToString("") { "%02x".format(it) }
-        } catch (e: Exception) {
-            password
-        }
-    }
-
     // --- Secure User Authentication Actions ---
     fun registerNewUser(username: String, fullName: String, passcode: String) {
         val cleanUser = username.lowercase().trim()
@@ -616,13 +605,12 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     return@launch
                 }
 
-                val salt = java.util.UUID.randomUUID().toString().take(6)
-                val hashed = hashPassword(passcode, salt)
+                val credential = PasscodeHasher.hash(passcode)
                 val newUser = User(
                     username = cleanUser,
                     fullName = fullName.trim(),
-                    passwordHash = hashed,
-                    salt = salt,
+                    passwordHash = credential.passwordHash,
+                    salt = credential.salt,
                     groupId = null
                 )
                 repository.insertUser(newUser)
@@ -649,16 +637,23 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     return@launch
                 }
 
-                val hashed = hashPassword(passcode, user.salt)
-                if (user.passwordHash == hashed) {
-                    _currentUser.value = user
-                    if (!user.groupId.isNullOrEmpty()) {
-                        val group = repository.getGroupById(user.groupId)
+                if (PasscodeHasher.verify(passcode, user.passwordHash, user.salt)) {
+                    val authenticatedUser = if (PasscodeHasher.needsRehash(user.passwordHash)) {
+                        val credential = PasscodeHasher.hash(passcode)
+                        user.copy(passwordHash = credential.passwordHash, salt = credential.salt).also {
+                            repository.updateUser(it)
+                        }
+                    } else {
+                        user
+                    }
+                    _currentUser.value = authenticatedUser
+                    if (!authenticatedUser.groupId.isNullOrEmpty()) {
+                        val group = repository.getGroupById(authenticatedUser.groupId)
                         _currentGroup.value = group
                     } else {
                         _currentGroup.value = null
                     }
-                    _userFeedback.value = "Authenticated! Welcome back, ${user.fullName}."
+                    _userFeedback.value = "Authenticated! Welcome back, ${authenticatedUser.fullName}."
                     runAIPortfolioSummary()
                 } else {
                     _userFeedback.value = "Incorrect passcode."
