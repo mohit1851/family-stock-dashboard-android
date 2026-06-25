@@ -59,6 +59,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
     val isAiLoading by viewModel.isSingleStockAiLoading.collectAsStateWithLifecycle()
     val trendingStocks by viewModel.trendingStocks.collectAsStateWithLifecycle()
     val stockPriceHistory by viewModel.stockPriceHistory.collectAsStateWithLifecycle()
+    val fiftyTwoWeekRanges by viewModel.fiftyTwoWeekRanges.collectAsStateWithLifecycle()
 
     var searchQuery by remember { mutableStateOf("") }
 
@@ -427,6 +428,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
         }
 
         activeStock?.let { stock ->
+            val rangeData = fiftyTwoWeekRanges[stock.symbol.uppercase()]
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -592,7 +594,11 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                             }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(text = "52W High", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                                val h52 = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) searchedStock!!.high52w else stock.currentPrice * 1.15
+                                val h52 = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) {
+                                    searchedStock!!.high52w
+                                } else {
+                                    rangeData?.yearHigh ?: stock.currentPrice * 1.15
+                                }
                                 Text(
                                     text = "₹" + String.format("%,.0f", h52),
                                     style = MaterialTheme.typography.bodySmall,
@@ -602,7 +608,11 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                             }
                             Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                                 Text(text = "52W Low", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                                val l52 = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) searchedStock!!.low52w else stock.currentPrice * 0.8
+                                val l52 = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) {
+                                    searchedStock!!.low52w
+                                } else {
+                                    rangeData?.yearLow ?: stock.currentPrice * 0.8
+                                }
                                 Text(
                                     text = "₹" + String.format("%,.0f", l52),
                                     style = MaterialTheme.typography.bodySmall,

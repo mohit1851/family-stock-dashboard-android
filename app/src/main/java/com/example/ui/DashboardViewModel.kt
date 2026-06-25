@@ -108,6 +108,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _stockPriceHistory = MutableStateFlow<Map<String, List<HistoricalPricePoint>>>(emptyMap())
     val stockPriceHistory: StateFlow<Map<String, List<HistoricalPricePoint>>> = _stockPriceHistory.asStateFlow()
 
+    private val _fiftyTwoWeekRanges = MutableStateFlow<Map<String, FiftyTwoWeekRange>>(emptyMap())
+    val fiftyTwoWeekRanges: StateFlow<Map<String, FiftyTwoWeekRange>> = _fiftyTwoWeekRanges.asStateFlow()
+
     // UI State tabs: 0 - Home, 1 - Research, 2 - Alerts, 3 - Settings
     private val _currentTab = MutableStateFlow(0)
     val currentTab: StateFlow<Int> = _currentTab.asStateFlow()
@@ -246,6 +249,14 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             selectedStockSymbol.collect { symbol -> refreshStockPriceHistory(symbol) }
         }
 
+        viewModelScope.launch {
+            refreshFiftyTwoWeekRanges()
+            while (currentCoroutineContext().isActive) {
+                kotlinx.coroutines.delay(1800000)
+                refreshFiftyTwoWeekRanges()
+            }
+        }
+
         // Start a continuous real-time price loop for the searched stock, with Screener updates
         viewModelScope.launch {
             while (currentCoroutineContext().isActive) {
@@ -372,6 +383,13 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val liveHistory = repository.fetchHistoricalPrices(cleanSymbol)
         val history = if (liveHistory.size >= 2) liveHistory else fallbackPriceHistory(cleanSymbol)
         _stockPriceHistory.value = _stockPriceHistory.value + (cleanSymbol to history)
+    }
+
+    private suspend fun refreshFiftyTwoWeekRanges() {
+        val ranges = repository.fetchFiftyTwoWeekRanges()
+        if (ranges.isNotEmpty()) {
+            _fiftyTwoWeekRanges.value = ranges
+        }
     }
 
     private fun fallbackPriceHistory(symbol: String): List<HistoricalPricePoint> {

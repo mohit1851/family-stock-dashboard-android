@@ -65,6 +65,10 @@ class StockRepository(private val db: FamilyDatabase) {
         okHttpClient = okHttpClient,
         apiKey = BuildConfig.STOCK_INDIAN_API_KEY
     )
+    private val fiftyTwoWeekProvider = IndianApiFiftyTwoWeekProvider(
+        okHttpClient = okHttpClient,
+        apiKey = BuildConfig.STOCK_INDIAN_API_KEY
+    )
 
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("StockRepository"))
 
@@ -186,6 +190,10 @@ class StockRepository(private val db: FamilyDatabase) {
 
     suspend fun fetchHistoricalPrices(symbol: String): List<HistoricalPricePoint> = withContext(Dispatchers.IO) {
         historicalDataProvider.getHistoricalPrices(symbol)
+    }
+
+    suspend fun fetchFiftyTwoWeekRanges(): Map<String, FiftyTwoWeekRange> = withContext(Dispatchers.IO) {
+        fiftyTwoWeekProvider.getFiftyTwoWeekRanges()
     }
 
     private suspend fun fetchBestEffortMarketQuote(
