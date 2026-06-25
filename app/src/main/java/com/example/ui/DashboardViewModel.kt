@@ -8,12 +8,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.data.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.apache.poi.ss.usermodel.*
 import java.io.InputStream
@@ -359,7 +361,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
         // Start a continuous real-time price loop for the searched stock, with Screener updates
         viewModelScope.launch {
-            while (true) {
+            while (currentCoroutineContext().isActive) {
                 kotlinx.coroutines.delay(8000) // update searches every 8s to moderate network frequency
                 val current = _searchedStock.value ?: continue
                 
@@ -389,7 +391,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
         // Periodically simulate small movements on our trending lists to show active tick feeds
         viewModelScope.launch {
-            while (true) {
+            while (currentCoroutineContext().isActive) {
                 kotlinx.coroutines.delay(11000)
                 val currentList = _trendingStocks.value
                 val updatedList = currentList.map { stock ->
@@ -402,6 +404,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 _trendingStocks.value = updatedList
             }
         }
+    }
+
+    override fun onCleared() {
+        repository.close()
+        super.onCleared()
     }
 
     private fun updatePortfolioMetricsOnLaunch() {

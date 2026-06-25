@@ -46,7 +46,7 @@ data class Candidate(
 )
 
 interface GeminiApiService {
-    @POST("v1beta/models/gemini-3.5-flash:generateContent")
+    @POST("v1beta/models/gemini-1.5-flash:generateContent")
     suspend fun generateContent(
         @Query("key") apiKey: String,
         @Body request: GenerateContentRequest
@@ -75,7 +75,7 @@ object GeminiService {
     private const val TAG = "GeminiService"
 
     /**
-     * Call Gemini 3.5 Flash to generate a combined portfolio adjustment recommendation,
+     * Call Gemini 1.5 Flash to generate a combined portfolio adjustment recommendation,
      * summarizing market trends for the Indian stock market based on Holdings.
      */
     suspend fun analyzePortfolio(holdings: List<StockAsset>): String {
@@ -120,7 +120,7 @@ object GeminiService {
     }
 
     /**
-     * Call Gemini 3.5 Flash to summarize news summaries and insights for a specific selected stock.
+     * Call Gemini 1.5 Flash to summarize news summaries and insights for a specific selected stock.
      */
     suspend fun analyzeSingleStock(symbol: String): String {
         val apiKey = BuildConfig.GEMINI_API_KEY

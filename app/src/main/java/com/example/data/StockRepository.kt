@@ -1,14 +1,20 @@
 package com.example.data
 
 import android.util.Log
+import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -27,9 +33,9 @@ class StockRepository(private val db: FamilyDatabase) {
     val verificationSources: StateFlow<Map<String, String>> = _verificationSources.asStateFlow()
 
     fun setVerificationSource(symbol: String, source: String) {
-        val current = _verificationSources.value.toMutableMap()
-        current[symbol.uppercase().trim()] = source
-        _verificationSources.value = current
+        _verificationSources.update { current ->
+            current + (symbol.uppercase().trim() to source)
+        }
     }
 
     private val okHttpClient = OkHttpClient.Builder()
@@ -37,7 +43,7 @@ class StockRepository(private val db: FamilyDatabase) {
         .readTimeout(6, TimeUnit.SECONDS)
         .build()
 
-    private val repositoryScope = CoroutineScope(Dispatchers.IO)
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("StockRepository"))
 
     init {
         // Seed initial data if the database is completely empty
@@ -184,7 +190,7 @@ class StockRepository(private val db: FamilyDatabase) {
     // A coroutine loop that pulls prices in real time from Yahoo Finance,
     // with a highly robust simulated tick fallback when offline.
     private suspend fun startPriceSimulation() {
-        while (true) {
+        while (currentCoroutineContext().isActive) {
             delay(12000) // Ticks every 12 seconds
             withContext(Dispatchers.IO) {
                 try {
@@ -303,12 +309,16 @@ class StockRepository(private val db: FamilyDatabase) {
                             db.watchlistDao().updateWatchlistItem(updatedItem)
                         }
                     }
-                    _verificationSources.value = currentSources
+                    _verificationSources.update { latest -> latest + currentSources }
                 } catch (e: Exception) {
                     Log.e("StockRepository", "Error in real-time sync / simulation: ${e.message}")
                 }
             }
         }
+    }
+
+    fun close() {
+        repositoryScope.cancel()
     }
 
     suspend fun scrapeScreenerRatios(symbol: String): Map<String, Double> = withContext(Dispatchers.IO) {
