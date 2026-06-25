@@ -20,7 +20,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
-import kotlin.random.Random
 
 class StockRepository(private val db: FamilyDatabase) {
     val allStocks: Flow<List<StockAsset>> = db.stockDao().getAllStocks()
@@ -43,6 +42,11 @@ class StockRepository(private val db: FamilyDatabase) {
         .connectTimeout(6, TimeUnit.SECONDS)
         .readTimeout(6, TimeUnit.SECONDS)
         .build()
+
+    private val liveMarketDataProvider = YahooFinanceMarketDataProvider(okHttpClient)
+    private val marketDataProvider = CompositeMarketDataProvider(
+        listOf(liveMarketDataProvider, SimulatedMarketDataProvider())
+    )
 
     private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.IO + CoroutineName("StockRepository"))
 
@@ -143,49 +147,15 @@ class StockRepository(private val db: FamilyDatabase) {
     }
 
     suspend fun fetchLiveStockData(symbol: String): Pair<Double, Double>? = withContext(Dispatchers.IO) {
-        val cleanSymbol = symbol.uppercase().trim()
-        val yahooSymbol = if (cleanSymbol.contains(".") || cleanSymbol == "NIFTY") {
-            if (cleanSymbol == "NIFTY") "^NSEI" else cleanSymbol
-        } else {
-            "$cleanSymbol.NS"
-        }
+        liveMarketDataProvider.getQuote(symbol)?.let { it.price to it.changePercentage }
+    }
 
-        val url = "https://query1.finance.yahoo.com/v8/finance/chart/$yahooSymbol?interval=1d&range=1d"
-        val request = okhttp3.Request.Builder()
-            .url(url)
-            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36")
-            .build()
-
-        try {
-            okHttpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    Log.w("StockRepository", "Yahoo Finance HTTP fail for $yahooSymbol: ${response.code}")
-                    return@use null
-                }
-                val bodyString = response.body?.string() ?: return@use null
-                val json = org.json.JSONObject(bodyString)
-                val chart = json.optJSONObject("chart") ?: return@use null
-                val result = chart.optJSONArray("result") ?: return@use null
-                if (result.length() > 0) {
-                    val meta = result.getJSONObject(0).optJSONObject("meta") ?: return@use null
-                    val price = meta.optDouble("regularMarketPrice", Double.NaN)
-                    val previousClose = meta.optDouble("chartPreviousClose", price)
-                    
-                    if (!price.isNaN()) {
-                        val change = if (!previousClose.isNaN() && previousClose != 0.0) {
-                            ((price - previousClose) / previousClose) * 100.0
-                        } else {
-                            0.0
-                        }
-                        return@use Pair(price, change)
-                    }
-                }
-                null
-            }
-        } catch (e: Exception) {
-            Log.e("StockRepository", "Error fetching live Yahoo trend for $yahooSymbol: ${e.message}")
-            null
-        }
+    private suspend fun fetchBestEffortMarketQuote(
+        symbol: String,
+        fallbackPrice: Double,
+        fallbackChangePercentage: Double
+    ): MarketQuote? = withContext(Dispatchers.IO) {
+        marketDataProvider.getQuote(symbol, fallbackPrice, fallbackChangePercentage)
     }
 
     // A coroutine loop that pulls prices in real time from Yahoo Finance,
@@ -205,21 +175,16 @@ class StockRepository(private val db: FamilyDatabase) {
                         var newDailyChange = stock.dailyChangePercentage
                         var isReal = false
 
-                        // Try to pull real-time data first
-                        val liveData = fetchLiveStockData(stock.symbol)
-                        if (liveData != null) {
-                            newPrice = Math.round(liveData.first * 100.0) / 100.0
-                            newDailyChange = Math.round(liveData.second * 100.0) / 100.0
-                            isReal = true
-                            currentSources[stock.symbol.uppercase()] = "Live Yahoo Finance API (NSE)"
-                        } else {
-                            // If network / rate limited, apply slight realistic tick simulation
-                            val percentageMovement = (Random.nextDouble() * 0.4 - 0.2) // Range [-0.2%, +0.2%]
-                            val originalPrice = stock.currentPrice
-                            val priceDelta = originalPrice * (percentageMovement / 100.0)
-                            newPrice = Math.round((originalPrice + priceDelta) * 100.0) / 100.0
-                            newDailyChange = Math.round((stock.dailyChangePercentage + percentageMovement) * 100.0) / 100.0
-                            currentSources[stock.symbol.uppercase()] = "Verified Loop Simulator (Offline Fallback)"
+                        val quote = fetchBestEffortMarketQuote(
+                            symbol = stock.symbol,
+                            fallbackPrice = stock.currentPrice,
+                            fallbackChangePercentage = stock.dailyChangePercentage
+                        )
+                        if (quote != null) {
+                            newPrice = quote.price
+                            newDailyChange = quote.changePercentage
+                            isReal = quote.isLive
+                            currentSources[stock.symbol.uppercase()] = quote.source
                         }
 
                         val updatedStock = stock.copy(
@@ -245,7 +210,8 @@ class StockRepository(private val db: FamilyDatabase) {
                                         ChatMessage(
                                             sender = "System Alert",
                                             message = "[ALERT HIT] ${stock.symbol} ${if (isReal) "Real-time" else "Simulated"} Price has crossed your threshold of ₹${alert.targetPrice}! Sync at ₹$newPrice.",
-                                            timestamp = System.currentTimeMillis()
+                                            timestamp = System.currentTimeMillis(),
+                                            groupId = stock.groupId
                                         )
                                     )
                                 }
@@ -259,18 +225,15 @@ class StockRepository(private val db: FamilyDatabase) {
                         var newPrice = item.currentPrice
                         var newDailyChange = item.dailyChangePercentage
 
-                        // Pull live price for watchlisted stock
-                        val liveData = fetchLiveStockData(item.symbol)
-                        if (liveData != null) {
-                            newPrice = Math.round(liveData.first * 100.0) / 100.0
-                            newDailyChange = Math.round(liveData.second * 100.0) / 100.0
-                            currentSources[item.symbol.uppercase()] = "Live Yahoo Finance API (NSE)"
-                        } else {
-                            val percentageMovement = (Random.nextDouble() * 0.4 - 0.2)
-                            val originalPrice = item.currentPrice
-                            val priceDelta = originalPrice * (percentageMovement / 100.0)
-                            newPrice = Math.round((originalPrice + priceDelta) * 100.0) / 100.0
-                            newDailyChange = Math.round((item.dailyChangePercentage + percentageMovement) * 100.0) / 100.0
+                        val quote = fetchBestEffortMarketQuote(
+                            symbol = item.symbol,
+                            fallbackPrice = item.currentPrice,
+                            fallbackChangePercentage = item.dailyChangePercentage
+                        )
+                        if (quote != null) {
+                            newPrice = quote.price
+                            newDailyChange = quote.changePercentage
+                            currentSources[item.symbol.uppercase()] = quote.source
                         }
 
                         val updatedItem = item.copy(
