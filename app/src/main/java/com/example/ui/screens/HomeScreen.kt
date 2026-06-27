@@ -645,46 +645,46 @@ private fun HomeHoldingCard(stock: StockAsset, totalCurrentValue: Double) {
                 }
             }
 
-            LinearProgressIndicator(
-                progress = { (allocation / 100.0).coerceIn(0.0, 1.0).toFloat() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(CircleShape),
-                color = accent,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+            HorizontalDivider(color = BorderColor.copy(alpha = 0.55f))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text("Invested", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                    Text(
-                        text = "₹${String.format("%,.0f", totalCost)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = TextDark
-                    )
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Current", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                    Text(
-                        text = "₹${String.format("%,.0f", stockValue)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = TextDark
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("P/L", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                    Text(
-                        text = "${if (isProfit) "+" else ""}₹${String.format("%,.0f", profitLoss)} (${String.format("%.2f", plPercentage)}%)",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isProfit) SoftGreen else SoftRed
-                    )
-                }
+                HoldingStat(label = "Invested", value = "₹${String.format("%,.0f", totalCost)}", modifier = Modifier.weight(1f))
+                HoldingStat(
+                    label = "Avg buy",
+                    value = "₹${String.format("%,.2f", stock.avgPrice)}",
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                )
+                HoldingStat(
+                    label = "P/L",
+                    value = "${if (isProfit) "+" else ""}₹${String.format("%,.0f", profitLoss)} (${String.format("%.2f", plPercentage)}%)",
+                    valueColor = if (isProfit) SoftGreen else SoftRed,
+                    modifier = Modifier.weight(1.35f),
+                    horizontalAlignment = Alignment.End
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun HoldingStat(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: Color = TextDark,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start
+) {
+    Column(modifier = modifier, horizontalAlignment = horizontalAlignment) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = TextSubtle)
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = valueColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
