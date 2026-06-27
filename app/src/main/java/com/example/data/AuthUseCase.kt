@@ -110,7 +110,7 @@ class AuthUseCase(private val repository: StockRepository) {
         repository.updateUser(updatedUser)
         repository.insertChatMessage(
             sender = "System",
-            message = "Secure group formed by ${user.fullName}. Use code $inviteCode to invite your family members!",
+            message = "Family group created by ${user.fullName}. Use code $inviteCode to invite your family members.",
             groupId = groupId
         )
 
@@ -140,7 +140,7 @@ class AuthUseCase(private val repository: StockRepository) {
         return AuthActionResult.Success(
             user = updatedUser,
             group = group,
-            message = "Success! Linked to ${group.name} portfolio stream.",
+            message = "Joined ${group.name} family portfolio.",
             refreshPortfolioSummary = true
         )
     }

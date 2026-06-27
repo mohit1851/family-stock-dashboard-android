@@ -23,7 +23,7 @@ class MarketDataProviderTest {
         assertNotNull(quote)
         assertEquals("RELIANCE", quote!!.symbol)
         assertFalse(quote.isLive)
-        assertEquals("Verified Loop Simulator (Offline Fallback)", quote.source)
+        assertEquals("Offline fallback price model", quote.source)
         assertTrue(quote.price in 2_390.0..2_410.0)
     }
 

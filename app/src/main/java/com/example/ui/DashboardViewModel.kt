@@ -282,7 +282,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         currentPrice = newPrice,
                         dailyChangePercentage = Math.round(newDailyChange * 100.0) / 100.0
                     )
-                    repository.setVerificationSource(current.symbol, "Verified Loop Simulator (Offline Fallback)")
+                    repository.setVerificationSource(current.symbol, "Offline fallback price model")
                 }
             }
         }
@@ -579,7 +579,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 }
             } else {
                 if (liveData == null && stockDetails == null) {
-                    repository.setVerificationSource(cleanQuery, "Verified Loop Simulator (Offline Fallback)")
+                    repository.setVerificationSource(cleanQuery, "Offline fallback price model")
                 }
             }
         }

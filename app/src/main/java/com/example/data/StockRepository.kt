@@ -255,7 +255,7 @@ class StockRepository(private val db: FamilyDatabase) {
                                     db.chatDao().insertMessage(
                                         ChatMessage(
                                             sender = "System Alert",
-                                            message = "[ALERT HIT] ${stock.symbol} ${if (isReal) "Real-time" else "Simulated"} Price has crossed your threshold of ₹${alert.targetPrice}! Sync at ₹$newPrice.",
+                                            message = "[ALERT HIT] ${stock.symbol} ${if (isReal) "live" else "offline fallback"} price crossed your threshold of ₹${alert.targetPrice}. Current price: ₹$newPrice.",
                                             timestamp = System.currentTimeMillis(),
                                             groupId = stock.groupId
                                         )

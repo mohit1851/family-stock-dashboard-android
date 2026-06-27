@@ -66,7 +66,7 @@ fun AuthenticationScreen(viewModel: DashboardViewModel) {
             ) {
                 Icon(
                     imageVector = Icons.Default.Lock,
-                    contentDescription = "Security Vault Lock",
+                    contentDescription = "App lock",
                     tint = BluePrimary,
                     modifier = Modifier.size(32.dp)
                 )
@@ -81,14 +81,14 @@ fun AuthenticationScreen(viewModel: DashboardViewModel) {
                     letterSpacing = 1.5.sp
                 )
                 Text(
-                    text = "Secure Shared Wealth Portals",
+                    text = "Shared Family Portfolio",
                     style = MaterialTheme.typography.headlineSmall,
                     color = TextDark,
                     fontWeight = FontWeight.ExtraBold,
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "Real-time consolidated tracking & encrypted family chat streams.",
+                    text = "Track family holdings, watchlists, alerts, and research notes in one place.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSubtle,
                     textAlign = TextAlign.Center,
@@ -167,7 +167,7 @@ fun AuthenticationScreen(viewModel: DashboardViewModel) {
                     OutlinedTextField(
                         value = passcode,
                         onValueChange = { passcode = it },
-                        label = { Text("Secure Security Passcode (4+ digits)") },
+                        label = { Text("Passcode (4+ digits)") },
                         leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = TextSubtle) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
@@ -193,7 +193,7 @@ fun AuthenticationScreen(viewModel: DashboardViewModel) {
                         modifier = Modifier.fillMaxWidth().testTag("auth_submit_btn")
                     ) {
                         Text(
-                            text = if (isLogin) "Acknowledge Sign In" else "Initialize Secure Node",
+                            text = if (isLogin) "Sign In" else "Create Account",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyLarge
                         )
@@ -201,7 +201,7 @@ fun AuthenticationScreen(viewModel: DashboardViewModel) {
                 }
             }
 
-            // Quick Access Sandbox Account Option
+            // Quick access demo account option
             Card(
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
@@ -216,14 +216,14 @@ fun AuthenticationScreen(viewModel: DashboardViewModel) {
             ) {
                 Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "⚡ Sandboxed Interactive Sandbox",
+                        text = "Demo Account",
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                         color = BluePrimary,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Testing the app? Tap below to pre-load the Sharma sandbox account. Instantly pre-populate ₹42 Lakhs assets, price simulation ticker events, and test messages.",
+                        text = "Testing the app? Use the Sharma demo account with sample family holdings, watchlists, alerts, and messages.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextDark,
                         lineHeight = 16.sp,
@@ -239,7 +239,7 @@ fun AuthenticationScreen(viewModel: DashboardViewModel) {
                         shape = RoundedCornerShape(100.dp),
                         modifier = Modifier.fillMaxWidth().testTag("quick_sandbox_button")
                     ) {
-                        Text("Instant Sandbox Access", color = BluePrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Use Demo Account", color = BluePrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
             }
@@ -286,7 +286,7 @@ fun GroupSelectionScreen(viewModel: DashboardViewModel) {
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "VAULT ASSOCIATION",
+                    text = "FAMILY GROUP",
                     style = MaterialTheme.typography.labelSmall,
                     color = SoftGreen,
                     fontWeight = FontWeight.Bold,
@@ -300,7 +300,7 @@ fun GroupSelectionScreen(viewModel: DashboardViewModel) {
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "Logged in securely as @${currentUser?.username}. Select an option below to isolate or share your financial data.",
+                    text = "Logged in as @${currentUser?.username}. Create a family group or join one with an invite code.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSubtle,
                     textAlign = TextAlign.Center,
@@ -308,7 +308,7 @@ fun GroupSelectionScreen(viewModel: DashboardViewModel) {
                 )
             }
 
-            // Card 1: Create a Circular Vault
+            // Card 1: Create a family group
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -317,13 +317,13 @@ fun GroupSelectionScreen(viewModel: DashboardViewModel) {
             ) {
                 Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "🆕 Option A: Form a Private Circle",
+                        text = "Option A: Create a Family Group",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = BluePrimary
                     )
                     Text(
-                        text = "Establish a pristine, isolated space. You will receive a secure shareable invitation code to link your parents, kids, or business partner's devices.",
+                        text = "Create a group and share the invite code with family members who should access the portfolio.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSubtle,
                         lineHeight = 16.sp
@@ -347,12 +347,12 @@ fun GroupSelectionScreen(viewModel: DashboardViewModel) {
                         shape = RoundedCornerShape(100.dp),
                         modifier = Modifier.fillMaxWidth().testTag("create_group_btn")
                     ) {
-                        Text("Form Private Vault Space", fontWeight = FontWeight.Bold)
+                        Text("Create Family Group", fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            // Card 2: Join an Active Vault
+            // Card 2: Join a family group
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -361,13 +361,13 @@ fun GroupSelectionScreen(viewModel: DashboardViewModel) {
             ) {
                 Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "🤝 Option B: Join an Existing Space",
+                        text = "Option B: Join a Family Group",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = SoftGreen
                     )
                     Text(
-                        text = "Have another family member share their invite code (e.g. SHA-...). Enter it below to hook directly into their stock and discussion dashboard.",
+                        text = "Enter an invite code from another family member to access their shared portfolio and discussion.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSubtle,
                         lineHeight = 16.sp
@@ -391,7 +391,7 @@ fun GroupSelectionScreen(viewModel: DashboardViewModel) {
                         shape = RoundedCornerShape(100.dp),
                         modifier = Modifier.fillMaxWidth().testTag("join_group_btn")
                     ) {
-                        Text("Verify & Bind Stream", fontWeight = FontWeight.Bold)
+                        Text("Join Family Group", fontWeight = FontWeight.Bold)
                     }
                 }
             }

@@ -177,7 +177,7 @@ class SimulatedMarketDataProvider : MarketDataProvider {
             symbol = cleanSymbol,
             price = price.roundToPaise(),
             changePercentage = (baseChange + movement).roundToPercent(),
-            source = "Verified Loop Simulator (Offline Fallback)",
+            source = "Offline fallback price model",
             isLive = false
         )
     }

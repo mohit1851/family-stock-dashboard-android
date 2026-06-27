@@ -184,28 +184,28 @@ object GeminiService {
         return when (symbol.uppercase()) {
             "RELIANCE" -> """
                 NSE: RELIANCE is India's largest company by market cap, spanning oil-to-chemicals, retail, and telecommunications (Jio). 
-                Market sentiment remains firmly bullish as expansion of clean green hydrogen gigafactories and retail monetization continue to unlock massive compounding power. 
-                Recommendation: Strong Core Hold. Accumulate on dips near the ₹2,350 support level.
+                Market sentiment depends on energy margins, retail performance, telecom growth, and capital expenditure execution.
+                Research note: Review valuation, debt, and segment performance before adding exposure.
             """.trimIndent()
             "TATAMOTORS" -> """
                 NSE: TATAMOTORS is India's leading automobile manufacturer, dominating public heavy transports and capturing over 70% share of India's EV market.
-                Sentiment is extremely positive, backed by robust Jaguar Land Rover (JLR) premium exports and clean energy transition.
-                Recommendation: Hold / Accumulate. Tata Motors serves as an ideal growth engine for long-term multi-generational family portfolios.
+                Sentiment depends on Jaguar Land Rover (JLR) demand, India passenger vehicle demand, EV execution, and debt reduction.
+                Research note: Compare current valuation with auto-cycle risks before changing allocation.
             """.trimIndent()
             "TCS" -> """
                 NSE: TCS is a global IT services giant and Tata Group's primary cash-generator, with exceptional returns-on-equity.
-                Market sentiment is stable-to-positive; interest rates in EU/US dictate enterprise client spend, with emerging Cloud analytics driving long-term contracts.
-                Recommendation: Defensive Core Buy. Outstanding choice for family investors seeking steady annual dividend yields.
+                Market sentiment depends on enterprise technology spending, deal wins, margins, and currency movements.
+                Research note: Review growth, valuation, and dividend history before changing allocation.
             """.trimIndent()
             "HDFCBANK" -> """
                 NSE: HDFCBANK is India's largest private sector bank, following an historic merger with its parent HDFC Ltd.
-                Sentiment is cautious-to-neutral as credit-to-deposit adjustments settle, but it remains a powerhouse of premium capital security.
-                Recommendation: Accumulate. Perfect cornerstone asset to secure steady long-term family wealth against volatility.
+                Sentiment is cautious-to-neutral as credit-to-deposit adjustments settle after the HDFC merger.
+                Research note: Review deposit growth, asset quality, margins, and valuation before changing allocation.
             """.trimIndent()
             else -> """
                 NSE: $symbol represents a specialized Indian market asset. 
-                Sentiment is driven by dynamic internal volume and systemic NIFTY index momentum. Keep a close watch on regional triggers, volume indicators, and set custom alerts.
-                Recommendation: Hold. Establish tight price limits and monitor general earnings calls with your family members regularly.
+                Sentiment is driven by volume, sector news, earnings updates, and broader NIFTY momentum.
+                Research note: Set watchlist targets and review company filings before taking action.
             """.trimIndent()
         }
     }
