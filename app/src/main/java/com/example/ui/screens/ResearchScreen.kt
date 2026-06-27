@@ -58,8 +58,15 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
     val singleStockAiText by viewModel.singleStockAiSummary.collectAsStateWithLifecycle()
     val isAiLoading by viewModel.isSingleStockAiLoading.collectAsStateWithLifecycle()
     val trendingStocks by viewModel.trendingStocks.collectAsStateWithLifecycle()
+    val isTrendingStocksLoading by viewModel.isTrendingStocksLoading.collectAsStateWithLifecycle()
+    val trendingStocksError by viewModel.trendingStocksError.collectAsStateWithLifecycle()
     val stockPriceHistory by viewModel.stockPriceHistory.collectAsStateWithLifecycle()
+    val isStockPriceHistoryLoading by viewModel.isStockPriceHistoryLoading.collectAsStateWithLifecycle()
+    val stockPriceHistoryError by viewModel.stockPriceHistoryError.collectAsStateWithLifecycle()
     val fiftyTwoWeekRanges by viewModel.fiftyTwoWeekRanges.collectAsStateWithLifecycle()
+    val newsList by viewModel.stockNews.collectAsStateWithLifecycle()
+    val isStockNewsLoading by viewModel.isStockNewsLoading.collectAsStateWithLifecycle()
+    val stockNewsError by viewModel.stockNewsError.collectAsStateWithLifecycle()
 
     var searchQuery by remember { mutableStateOf("") }
 
@@ -289,71 +296,81 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
+                if (isTrendingStocksLoading) {
+                    ResearchStatusMessage("Loading latest movers...", showProgress = true)
+                    Spacer(modifier = Modifier.height(8.dp))
+                } else if (trendingStocksError != null) {
+                    ResearchStatusMessage(trendingStocksError ?: "Market movers unavailable.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
 
                 // Scrollable Row of category stock assets
                 val filteredList = trendingStocks.filter { it.category == selectedCategory }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    filteredList.forEach { stockItem ->
-                        Card(
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                            border = BorderStroke(1.dp, BorderColor),
-                            modifier = Modifier
-                                .width(125.dp)
-                                .clickable {
-                                    searchQuery = stockItem.symbol
-                                    viewModel.searchStock(stockItem.symbol)
-                                }
-                        ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                if (filteredList.isEmpty()) {
+                    ResearchStatusMessage("No stocks available in this category yet.")
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        filteredList.forEach { stockItem ->
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                                border = BorderStroke(1.dp, BorderColor),
+                                modifier = Modifier
+                                    .width(125.dp)
+                                    .clickable {
+                                        searchQuery = stockItem.symbol
+                                        viewModel.searchStock(stockItem.symbol)
+                                    }
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = stockItem.symbol,
+                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                            color = TextDark,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(if (stockItem.changePercentage >= 0) SoftGreen else SoftRed)
+                                        )
+                                    }
                                     Text(
-                                        text = stockItem.symbol,
-                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                        color = TextDark,
+                                        text = stockItem.name,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                        color = TextSubtle,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
-                                    // small visual pill for categories: Green for positive, Red for negative
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(if (stockItem.changePercentage >= 0) SoftGreen else SoftRed)
-                                    )
-                                }
-                                Text(
-                                    text = stockItem.name,
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                                    color = TextSubtle,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.Bottom
-                                ) {
-                                    Text(
-                                        text = "₹" + String.format("%.2f", stockItem.currentPrice),
-                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                        color = TextDark
-                                    )
-                                    Text(
-                                        text = "${if (stockItem.changePercentage >= 0) "+" else ""}${String.format("%.1f", stockItem.changePercentage)}%",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
-                                        color = if (stockItem.changePercentage >= 0) SoftGreen else SoftRed
-                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.Bottom
+                                    ) {
+                                        Text(
+                                            text = "₹" + String.format("%.2f", stockItem.currentPrice),
+                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                            color = TextDark
+                                        )
+                                        Text(
+                                            text = "${if (stockItem.changePercentage >= 0) "+" else ""}${String.format("%.1f", stockItem.changePercentage)}%",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                                            color = if (stockItem.changePercentage >= 0) SoftGreen else SoftRed
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -429,6 +446,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
 
         activeStock?.let { stock ->
             val rangeData = fiftyTwoWeekRanges[stock.symbol.uppercase()]
+            val activeNews = newsList.filter { it.symbol.equals(stock.symbol, ignoreCase = true) }.take(3)
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -479,6 +497,17 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                             stockSymbol = stock.symbol,
                             priceHistory = stockPriceHistory[stock.symbol.uppercase()].orEmpty()
                         )
+                        if (isStockPriceHistoryLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.align(Alignment.Center).size(28.dp),
+                                strokeWidth = 3.dp,
+                                color = BluePrimary
+                            )
+                        }
+                    }
+                    stockPriceHistoryError?.let { message ->
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ResearchStatusMessage(message)
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -652,6 +681,12 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                     }
                 }
             }
+
+            ResearchNewsPreview(
+                news = activeNews,
+                isLoading = isStockNewsLoading,
+                error = stockNewsError
+            )
 
             // Quick Invest & Alert Deck
             Card(
@@ -861,6 +896,114 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                         }
                     }
                 }
+            }
+        }
+        if (activeStock == null) {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, BorderColor),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                ResearchStatusMessage(
+                    message = "Search a symbol or add portfolio holdings to view chart, fundamentals, news, and actions.",
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResearchStatusMessage(
+    message: String,
+    modifier: Modifier = Modifier,
+    showProgress: Boolean = false
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (showProgress) {
+            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = BluePrimary)
+        } else {
+            Icon(Icons.Default.Info, contentDescription = null, tint = TextSubtle, modifier = Modifier.size(16.dp))
+        }
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = TextSubtle
+        )
+    }
+}
+
+@Composable
+private fun ResearchNewsPreview(
+    news: List<NewsArticle>,
+    isLoading: Boolean,
+    error: String?
+) {
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, BorderColor),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "RECENT NEWS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = BluePrimary,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.0.sp
+                )
+                Text(
+                    text = "IndianAPI",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSubtle,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            when {
+                isLoading -> ResearchStatusMessage("Loading recent news...", showProgress = true)
+                news.isNotEmpty() -> news.forEach { article ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = article.title,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextDark,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "${article.source} • ${article.timeStr}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSubtle,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                else -> ResearchStatusMessage(error ?: "No recent news available for this equity yet.")
             }
         }
     }

@@ -121,6 +121,28 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                             color = Color.White
                         )
 
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            HomeMetricPill(
+                                label = "Cost basis",
+                                value = "₹${String.format("%,.0f", totalCostBasis)}",
+                                modifier = Modifier.weight(1f)
+                            )
+                            HomeMetricPill(
+                                label = "Holdings",
+                                value = stocks.size.toString(),
+                                modifier = Modifier.weight(1f)
+                            )
+                            HomeMetricPill(
+                                label = "Alerts",
+                                value = activeAlertCount.toString(),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
                         Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
                         Spacer(modifier = Modifier.height(10.dp))
@@ -159,23 +181,40 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
 
         // Portfolio Allocation Donut Chart
         item {
-            if (stocks.isNotEmpty()) {
-                Card(
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, BorderColor),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, BorderColor),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = "PORTFOLIO ALLOCATION",
+                            text = "PORTFOLIO MIX",
                             style = MaterialTheme.typography.labelSmall,
                             color = BluePrimary,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.2.sp
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = if (stocks.isEmpty()) "No holdings" else "${stocks.size} holdings",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSubtle,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
 
+                    if (stocks.isEmpty()) {
+                        EmptyHomeState(
+                            title = "No portfolio holdings yet",
+                            message = "Import a broker statement or add a buy transaction from Research to start tracking this family portfolio."
+                        )
+                    } else {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -521,6 +560,13 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                     modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
                 )
 
+                if (stocks.isEmpty()) {
+                    EmptyHomeState(
+                        title = "Holdings will appear here",
+                        message = "Once you import or record positions, each stock will show value, cost, and return."
+                    )
+                }
+
                 stocks.forEach { stock ->
                     val stockValue = stock.shares * stock.currentPrice
                     val totalCost = stock.shares * stock.avgPrice
@@ -600,6 +646,69 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun HomeMetricPill(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White.copy(alpha = 0.12f))
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White.copy(alpha = 0.72f),
+            maxLines = 1
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun EmptyHomeState(title: String, message: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+            .padding(18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.Info,
+            contentDescription = null,
+            tint = TextSubtle,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextDark,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = TextSubtle,
+            textAlign = TextAlign.Center
+        )
     }
 }
 

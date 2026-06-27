@@ -105,8 +105,20 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _stockNews = MutableStateFlow<List<NewsArticle>>(emptyList())
     val stockNews: StateFlow<List<NewsArticle>> = _stockNews.asStateFlow()
 
+    private val _isStockNewsLoading = MutableStateFlow(false)
+    val isStockNewsLoading: StateFlow<Boolean> = _isStockNewsLoading.asStateFlow()
+
+    private val _stockNewsError = MutableStateFlow<String?>(null)
+    val stockNewsError: StateFlow<String?> = _stockNewsError.asStateFlow()
+
     private val _stockPriceHistory = MutableStateFlow<Map<String, List<HistoricalPricePoint>>>(emptyMap())
     val stockPriceHistory: StateFlow<Map<String, List<HistoricalPricePoint>>> = _stockPriceHistory.asStateFlow()
+
+    private val _isStockPriceHistoryLoading = MutableStateFlow(false)
+    val isStockPriceHistoryLoading: StateFlow<Boolean> = _isStockPriceHistoryLoading.asStateFlow()
+
+    private val _stockPriceHistoryError = MutableStateFlow<String?>(null)
+    val stockPriceHistoryError: StateFlow<String?> = _stockPriceHistoryError.asStateFlow()
 
     private val _fiftyTwoWeekRanges = MutableStateFlow<Map<String, FiftyTwoWeekRange>>(emptyMap())
     val fiftyTwoWeekRanges: StateFlow<Map<String, FiftyTwoWeekRange>> = _fiftyTwoWeekRanges.asStateFlow()
@@ -180,6 +192,12 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     // Trending Stocks for the search/research deck
     private val _trendingStocks = MutableStateFlow<List<TrendingStock>>(fallbackTrendingStocks)
     val trendingStocks: StateFlow<List<TrendingStock>> = _trendingStocks.asStateFlow()
+
+    private val _isTrendingStocksLoading = MutableStateFlow(false)
+    val isTrendingStocksLoading: StateFlow<Boolean> = _isTrendingStocksLoading.asStateFlow()
+
+    private val _trendingStocksError = MutableStateFlow<String?>(null)
+    val trendingStocksError: StateFlow<String?> = _trendingStocksError.asStateFlow()
 
     // AI summary and loading states
     private val _portfolioAiSummary = MutableStateFlow("")
@@ -341,25 +359,47 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private suspend fun refreshStockNews(symbols: List<String>) {
         if (symbols.isEmpty()) {
             _stockNews.value = emptyList()
+            _stockNewsError.value = null
             return
         }
 
-        _stockNews.value = repository.fetchStockNews(symbols).map { item ->
-            NewsArticle(
-                id = item.id,
-                symbol = item.symbol,
-                title = item.title,
-                source = item.source,
-                timeStr = item.time,
-                summary = item.summary,
-                sentiment = item.sentiment
-            )
+        _isStockNewsLoading.value = true
+        _stockNewsError.value = null
+        try {
+            _stockNews.value = repository.fetchStockNews(symbols).map { item ->
+                NewsArticle(
+                    id = item.id,
+                    symbol = item.symbol,
+                    title = item.title,
+                    source = item.source,
+                    timeStr = item.time,
+                    summary = item.summary,
+                    sentiment = item.sentiment
+                )
+            }
+            if (_stockNews.value.isEmpty()) {
+                _stockNewsError.value = "No recent news returned for saved symbols."
+            }
+        } catch (e: Exception) {
+            _stockNewsError.value = "Unable to load recent news."
+        } finally {
+            _isStockNewsLoading.value = false
         }
     }
 
     private suspend fun refreshTrendingStocks() {
-        val liveMovers = repository.fetchMarketMovers()
-        if (liveMovers.isEmpty()) return
+        _isTrendingStocksLoading.value = true
+        _trendingStocksError.value = null
+        val liveMovers = try {
+            repository.fetchMarketMovers()
+        } catch (e: Exception) {
+            emptyList()
+        }
+        if (liveMovers.isEmpty()) {
+            _trendingStocksError.value = "Live movers unavailable; showing fallback list."
+            _isTrendingStocksLoading.value = false
+            return
+        }
 
         val liveTrending = liveMovers.map { mover ->
             TrendingStock(
@@ -374,15 +414,26 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val categoriesWithLiveData = liveTrending.map { it.category }.toSet()
         val fallbackForMissingCategories = fallbackTrendingStocks.filter { it.category !in categoriesWithLiveData }
         _trendingStocks.value = liveTrending + fallbackForMissingCategories
+        _isTrendingStocksLoading.value = false
     }
 
     private suspend fun refreshStockPriceHistory(symbol: String) {
         val cleanSymbol = symbol.uppercase().trim()
         if (cleanSymbol.isBlank()) return
 
-        val liveHistory = repository.fetchHistoricalPrices(cleanSymbol)
+        _isStockPriceHistoryLoading.value = true
+        _stockPriceHistoryError.value = null
+        val liveHistory = try {
+            repository.fetchHistoricalPrices(cleanSymbol)
+        } catch (e: Exception) {
+            emptyList()
+        }
         val history = if (liveHistory.size >= 2) liveHistory else fallbackPriceHistory(cleanSymbol)
+        if (liveHistory.size < 2) {
+            _stockPriceHistoryError.value = "Historical data unavailable; showing offline fallback chart."
+        }
         _stockPriceHistory.value = _stockPriceHistory.value + (cleanSymbol to history)
+        _isStockPriceHistoryLoading.value = false
     }
 
     private suspend fun refreshFiftyTwoWeekRanges() {
