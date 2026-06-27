@@ -112,14 +112,14 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "No Shared Watchlist Tickers Set",
+                            text = "No Shared Watchlist Tickers",
                             fontWeight = FontWeight.Bold,
                             color = TextDark,
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Add assets in the 'Research' search engine to collaborative monitor goals.",
+                            text = "Add equities from Research to track target prices with the family.",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSubtle,
                             textAlign = TextAlign.Center
@@ -261,7 +261,7 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
             }
         }
 
-        // --- TAILORED LIVE MARKET NEWS DESK ---
+        // --- WATCHLIST NEWS ---
         item {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp),
@@ -269,7 +269,7 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "📰 Family Asset News Desk",
+                    text = "Family Asset News",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = BluePrimary
@@ -281,7 +281,7 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "Tailored",
+                        text = "From saved symbols",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = BluePrimary
@@ -299,7 +299,7 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
                     border = BorderStroke(1.dp, BorderColor)
                 ) {
                     Box(modifier = Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
-                        Text("No tailored news insights yet.", color = TextSubtle)
+                        Text("No recent news for saved symbols yet.", color = TextSubtle)
                     }
                 }
             }
@@ -394,7 +394,7 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
                         )
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Verified Analysis",
+                            contentDescription = "News source available",
                             tint = SoftGreen,
                             modifier = Modifier.size(14.dp)
                         )
