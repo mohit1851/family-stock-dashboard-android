@@ -73,7 +73,7 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
         ) {
             Column(modifier = Modifier.padding(18.dp)) {
                 Text(
-                    text = "🔒 Security Credentials & Profile",
+                    text = "Account & Profile",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = BluePrimary
@@ -98,7 +98,7 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
                         )
                         currentGroup?.let { g ->
                             Text(
-                                text = "Associated Circle: ${g.name}",
+                                text = "Family group: ${g.name}",
                                 fontSize = 12.sp,
                                 color = SoftGreen,
                                 fontWeight = FontWeight.Bold,
@@ -135,7 +135,7 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "👥 Active Portfolio Members",
+                            text = "Active Portfolio Members",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = BluePrimary
@@ -156,7 +156,7 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "The following members are connected to this secure shared stream. They can log buy/sell transactions, track alerts, and receive instant AI analysis.",
+                        text = "Members in this family group can record buy/sell activity, track alerts, and view portfolio research notes.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSubtle,
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -225,7 +225,7 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
                             }
                         }
                         if (index < groupMembers.lastIndex) {
-                            Divider(color = BorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(start = 46.dp))
+                            HorizontalDivider(color = BorderColor.copy(alpha = 0.5f), modifier = Modifier.padding(start = 46.dp))
                         }
                     }
                 }
@@ -242,14 +242,14 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
         ) {
             Column(modifier = Modifier.padding(18.dp)) {
                 Text(
-                    text = "🎨 Experience & App Theme",
+                    text = "Experience & App Theme",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = BluePrimary
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Personalize app colors and charts visuals. Choose between modern light mode, power-saving dark theme, or match your device system default.",
+                    text = "Choose light mode, dark mode, or your device system theme.",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSubtle
                 )
@@ -294,14 +294,14 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
         ) {
             Column(modifier = Modifier.padding(18.dp)) {
                 Text(
-                    text = "💼 Upload Brokerage Statement (CSV/XLSX)",
+                    text = "Upload Brokerage Statement (CSV/XLSX)",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = BluePrimary
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "Instead of logging manual purchase transactions, you can import your exported statement (e.g. Zerodha Kite, Groww, Upstox) in CSV or XLSX format to rebuild the entire portfolio instantaneously.",
+                    text = "Import an exported broker statement, such as Zerodha Kite, Groww, or Upstox CSV/XLSX, to replace this family group's portfolio holdings.",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSubtle
                 )
@@ -338,13 +338,13 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "⚠️ Android Key Warning",
+                    text = "API Key Handling",
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                     color = SoftRed
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Never hardcode your GEMINI_API_KEY inside code. Android packages (APKs) can be easily decompiled by unauthorized actors. Input keys exclusively via AI Studio's secure Secrets manager panel.",
+                    text = "For local development, keep GEMINI_API_KEY and STOCK_INDIAN_API_KEY in the ignored .env file. Do not commit real keys. For production, route market and AI calls through a backend because keys packaged in an APK can be extracted.",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextDark,
                     lineHeight = 17.sp
@@ -359,28 +359,28 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
         ) {
             Column(modifier = Modifier.padding(18.dp)) {
                 Text(
-                    text = "☁️ Educational Hosting Strategies (Free or Cheap)",
+                    text = "Deployment Notes",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = BluePrimary
                 )
                 Spacer(modifier = Modifier.height(10.dp))
 
-                Text(text = "1. Firebase Firestore Integration", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = TextDark)
+                Text(text = "1. Shared Cloud Database", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = TextDark)
                 Text(
-                    text = "Instead of offline Room, integrating Firebase Firestore connects multiple family devices in real-time. Firestore has an outstanding free tier of 50,000 document reads and 20,000 writes/day, resulting in absolutely zero hosting charges for family scale.",
+                    text = "Room stores data on the current device. To sync across family devices, add a backend or managed database such as Firebase Firestore or Supabase with proper auth rules.",
                     fontSize = 11.sp, color = TextSubtle, lineHeight = 16.sp, modifier = Modifier.padding(bottom = 10.dp)
                 )
 
-                Text(text = "2. Supabase PostgreSQL", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = TextDark)
+                Text(text = "2. Backend Proxy", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = TextDark)
                 Text(
-                    text = "Supabase offers a robust free cloud-hosted database of up to 500MB, full PostgreSQL triggers, real-time client socket listening, and quick user authentication. Highly recommended for tracking Indian equity tables.",
+                    text = "Use a small backend service to call Gemini and IndianAPI with server-held keys. The Android app should request only the data it needs from that backend.",
                     fontSize = 11.sp, color = TextSubtle, lineHeight = 16.sp, modifier = Modifier.padding(bottom = 10.dp)
                 )
 
                 Text(text = "3. Private APK Distribution", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = TextDark)
                 Text(
-                    text = "You do not need an active Google Play Console ($25) to host or share this app. Simply build the release APK on AI Studio, export the binary, and share it with your relative over safe private clouds (Google Drive, Dropbox) or Firebase App Distribution (fully free).",
+                    text = "For family testing, share debug or release builds privately through a trusted channel or Firebase App Distribution. Use Play Console when you need managed releases, updates, and broader distribution.",
                     fontSize = 11.sp, color = TextSubtle, lineHeight = 16.sp
                 )
             }
