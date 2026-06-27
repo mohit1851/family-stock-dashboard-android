@@ -18,6 +18,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -120,7 +122,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
-                        Divider(color = Color.White.copy(alpha = 0.2f))
+                        HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
                         Spacer(modifier = Modifier.height(10.dp))
 
                         Row(
@@ -137,7 +139,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = if (hasLiveFeed) "NSE Verified Live" else "Offline Sandbox Engine",
+                                    text = if (hasLiveFeed) "Live market data" else "Offline fallback data",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.White.copy(alpha = 0.8f),
                                     fontWeight = FontWeight.SemiBold
@@ -263,7 +265,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                         )
                     }
                     Icon(
-                        imageVector = Icons.Default.ArrowForwardIos,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
                         contentDescription = null,
                         tint = TextSubtle,
                         modifier = Modifier.size(14.dp)
@@ -313,7 +315,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                                     Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Color(0xFF27C93F)))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "Family Thread - Secure Terminal Window",
+                                        text = "Family Discussion",
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
                                         style = MaterialTheme.typography.titleSmall
@@ -325,7 +327,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "Close Window",
+                                        contentDescription = "Close chat",
                                         tint = Color.White,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -372,7 +374,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                                         .padding(horizontal = 8.dp, vertical = 6.dp)
                                 ) {
                                     Text(
-                                        text = "Sandboxed Feed",
+                                        text = "Shared messages",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF2E7D32)
@@ -380,7 +382,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                                 }
                             }
 
-                            Divider(color = BorderColor)
+                            HorizontalDivider(color = BorderColor)
 
                             val filteredChat = if (searchQuery.isEmpty()) {
                                 chatHistory
@@ -422,7 +424,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                                 }
                             }
 
-                            Divider(color = BorderColor)
+                            HorizontalDivider(color = BorderColor)
 
                             Box(modifier = Modifier.background(Color.White)) {
                                 ChatInputBar(
@@ -454,7 +456,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                Icons.Default.Send,
+                                Icons.AutoMirrored.Filled.Send,
                                 contentDescription = null,
                                 tint = BluePrimary,
                                 modifier = Modifier.size(18.dp)
@@ -473,14 +475,14 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Share,
-                                contentDescription = "Open in New Window",
+                                contentDescription = "Open full chat",
                                 tint = BluePrimary,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
                     }
 
-                    Divider(color = BorderColor)
+                    HorizontalDivider(color = BorderColor)
 
                     // Scrollable Chat area containing seeded & users messages
                     Column(
@@ -496,7 +498,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                         }
                     }
 
-                    Divider(color = BorderColor)
+                    HorizontalDivider(color = BorderColor)
 
                     ChatInputBar(
                         onSend = { text, recStock -> viewModel.sendChatMessage("Me", text, recStock) },
@@ -507,11 +509,11 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
             }
         }
 
-        // Portfolio Detailed Breakdown (Replaces AI Summary)
+        // Portfolio holdings breakdown
         item {
             Column(modifier = Modifier.padding(bottom = 8.dp)) {
                 Text(
-                    text = "PORTFOLIO DETAILED BREAKDOWN",
+                    text = "PORTFOLIO HOLDINGS",
                     style = MaterialTheme.typography.labelSmall,
                     color = BluePrimary,
                     fontWeight = FontWeight.Bold,
@@ -869,7 +871,7 @@ fun ChatInputBar(
                 modifier = Modifier.size(40.dp),
                 elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
             ) {
-                Icon(Icons.Default.Send, contentDescription = "Send", modifier = Modifier.size(18.dp))
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", modifier = Modifier.size(18.dp))
             }
         }
 
