@@ -447,6 +447,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
         activeStock?.let { stock ->
             val rangeData = fiftyTwoWeekRanges[stock.symbol.uppercase()]
             val activeNews = newsList.filter { it.symbol.equals(stock.symbol, ignoreCase = true) }.take(3)
+            val matchingSearch = searchedStock?.takeIf { it.symbol.uppercase() == stock.symbol.uppercase() }
             Card(
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -488,10 +489,33 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "PRICE HISTORY",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = BluePrimary,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.0.sp
+                        )
+                        Text(
+                            text = if (stockPriceHistoryError == null) "IndianAPI 1Y" else "Offline fallback",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSubtle,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(150.dp)
+                            .height(180.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
                     ) {
                         WavyPricePerformanceGraph(
                             stockSymbol = stock.symbol,
@@ -532,7 +556,7 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 1.0.sp
                             )
-                            if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase() && searchedStock!!.isScreenerSourced) {
+                            if (matchingSearch?.isScreenerSourced == true) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(4.dp))
@@ -549,135 +573,39 @@ fun ResearchGraphsTab(viewModel: DashboardViewModel) {
                             }
                         }
 
-                        // Row 1
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = "Market Cap", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                                val mc = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) searchedStock!!.marketCap else 145000.0
-                                Text(
-                                    text = if (mc >= 100000.0) "₹" + String.format("%,.1f", mc / 100000.0) + "L Cr" else "₹" + String.format("%,.0f", mc) + " Cr",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = "Stock P/E", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                                val pe = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) searchedStock!!.peRatio else 22.4
-                                Text(
-                                    text = "${pe}x",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = "Book Value", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                                val bv = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) searchedStock!!.bookValue else 450.0
-                                Text(
-                                    text = "₹" + String.format("%,.0f", bv),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                                Text(text = "Div Yield", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                                val dy = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) searchedStock!!.dividendYield else 1.2
-                                Text(
-                                    text = "${dy}%",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
-                                )
-                            }
-                        }
-
-                        // Row 2
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = "ROCE", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                                val roce = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) searchedStock!!.roce else 18.2
-                                Text(
-                                    text = "${roce}%",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = "ROE", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                                val roe = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) searchedStock!!.roe else 14.5
-                                Text(
-                                    text = "${roe}%",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = "52W High", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                                val h52 = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) {
-                                    searchedStock!!.high52w
-                                } else {
-                                    rangeData?.yearHigh ?: stock.currentPrice * 1.15
-                                }
-                                Text(
-                                    text = "₹" + String.format("%,.0f", h52),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                                Text(text = "52W Low", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                                val l52 = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) {
-                                    searchedStock!!.low52w
-                                } else {
-                                    rangeData?.yearLow ?: stock.currentPrice * 0.8
-                                }
-                                Text(
-                                    text = "₹" + String.format("%,.0f", l52),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
-                                )
-                            }
-                        }
-
-                        // Row 3 (Secondary Details)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = "Face Value", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                                val fv = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) searchedStock!!.faceValue else 2.0
-                                Text(
-                                    text = "₹" + String.format("%.0f", fv),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = "Beta Index", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
-                                val beta = if (searchedStock != null && searchedStock!!.symbol.uppercase() == stock.symbol.uppercase()) searchedStock!!.betaIndex else 1.08
-                                Text(
-                                    text = String.format("%.2f", beta),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
-                                )
-                            }
-                            Spacer(modifier = Modifier.weight(2f)) // Space balance
-                        }
+                        val marketCap = matchingSearch?.marketCap ?: 145000.0
+                        val high52 = matchingSearch?.high52w ?: rangeData?.yearHigh ?: stock.currentPrice * 1.15
+                        val low52 = matchingSearch?.low52w ?: rangeData?.yearLow ?: stock.currentPrice * 0.8
+                        ResearchMetricRow(
+                            leftLabel = "Market Cap",
+                            leftValue = if (marketCap >= 100000.0) "₹" + String.format("%,.1f", marketCap / 100000.0) + "L Cr" else "₹" + String.format("%,.0f", marketCap) + " Cr",
+                            rightLabel = "Stock P/E",
+                            rightValue = "${matchingSearch?.peRatio ?: 22.4}x"
+                        )
+                        ResearchMetricRow(
+                            leftLabel = "52W High",
+                            leftValue = "₹" + String.format("%,.0f", high52),
+                            rightLabel = "52W Low",
+                            rightValue = "₹" + String.format("%,.0f", low52)
+                        )
+                        ResearchMetricRow(
+                            leftLabel = "ROCE",
+                            leftValue = "${matchingSearch?.roce ?: 18.2}%",
+                            rightLabel = "ROE",
+                            rightValue = "${matchingSearch?.roe ?: 14.5}%"
+                        )
+                        ResearchMetricRow(
+                            leftLabel = "Book Value",
+                            leftValue = "₹" + String.format("%,.0f", matchingSearch?.bookValue ?: 450.0),
+                            rightLabel = "Dividend Yield",
+                            rightValue = "${matchingSearch?.dividendYield ?: 1.2}%"
+                        )
+                        ResearchMetricRow(
+                            leftLabel = "Face Value",
+                            leftValue = "₹" + String.format("%.0f", matchingSearch?.faceValue ?: 2.0),
+                            rightLabel = "Beta Index",
+                            rightValue = String.format("%.2f", matchingSearch?.betaIndex ?: 1.08)
+                        )
                     }
                 }
             }
@@ -1006,6 +934,49 @@ private fun ResearchNewsPreview(
                 else -> ResearchStatusMessage(error ?: "No recent news available for this equity yet.")
             }
         }
+    }
+}
+
+@Composable
+private fun ResearchMetricRow(
+    leftLabel: String,
+    leftValue: String,
+    rightLabel: String,
+    rightValue: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        ResearchMetricTile(label = leftLabel, value = leftValue, modifier = Modifier.weight(1f))
+        ResearchMetricTile(label = rightLabel, value = rightValue, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun ResearchMetricTile(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .padding(12.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = TextSubtle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            color = TextDark,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

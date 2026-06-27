@@ -167,12 +167,19 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
-                            Text(
-                                text = "Gain: ${if (netProfitLoss >= 0) "+" else ""}₹${String.format("%,.0f", netProfitLoss)} (${String.format("%.2f", profitPercentage)}%)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = gainColor,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = "Net return",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.65f)
+                                )
+                                Text(
+                                    text = "${if (netProfitLoss >= 0) "+" else ""}₹${String.format("%,.0f", netProfitLoss)} (${String.format("%.2f", profitPercentage)}%)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = gainColor,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -567,82 +574,114 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                     )
                 }
 
-                stocks.forEach { stock ->
-                    val stockValue = stock.shares * stock.currentPrice
-                    val totalCost = stock.shares * stock.avgPrice
-                    val profitLoss = stockValue - totalCost
-                    val plPercentage = if (totalCost > 0) (profitLoss / totalCost) * 100 else 0.0
-                    val isProfit = profitLoss >= 0
+                stocks.sortedByDescending { it.shares * it.currentPrice }.forEach { stock ->
+                    HomeHoldingCard(stock = stock, totalCurrentValue = totalCurrentValue)
+                }
+            }
+        }
+    }
+}
 
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, BorderColor),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(getStockColor(stock.symbol).copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = stock.symbol.take(1).uppercase(),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = getStockColor(stock.symbol)
-                                )
-                            }
+@Composable
+private fun HomeHoldingCard(stock: StockAsset, totalCurrentValue: Double) {
+    val stockValue = stock.shares * stock.currentPrice
+    val totalCost = stock.shares * stock.avgPrice
+    val profitLoss = stockValue - totalCost
+    val plPercentage = if (totalCost > 0) (profitLoss / totalCost) * 100 else 0.0
+    val allocation = if (totalCurrentValue > 0) (stockValue / totalCurrentValue) * 100 else 0.0
+    val isProfit = profitLoss >= 0
+    val accent = getStockColor(stock.symbol)
 
-                            Spacer(modifier = Modifier.width(12.dp))
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, BorderColor),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(accent.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stock.symbol.take(1).uppercase(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = accent
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stock.symbol,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+                    Text(
+                        text = "${stock.shares} shares • Avg ₹${String.format("%,.2f", stock.avgPrice)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSubtle
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "₹${String.format("%,.2f", stockValue)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+                    Text(
+                        text = "${String.format("%.1f", allocation)}% allocation",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSubtle
+                    )
+                }
+            }
 
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = stock.symbol,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
-                                )
-                                Text(
-                                    text = "${stock.shares} Shares @ ₹${String.format("%,.2f", stock.avgPrice)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = TextSubtle
-                                )
-                            }
+            LinearProgressIndicator(
+                progress = { (allocation / 100.0).coerceIn(0.0, 1.0).toFloat() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(CircleShape),
+                color = accent,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
 
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = "₹${String.format("%,.2f", stockValue)}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
-                                )
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = if (isProfit) Icons.Default.ArrowDropUp else Icons.Default.ArrowDropDown,
-                                        contentDescription = null,
-                                        tint = if (isProfit) SoftGreen else SoftRed,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = "${String.format("%.2f", plPercentage)}%",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isProfit) SoftGreen else SoftRed
-                                    )
-                                }
-                            }
-                        }
-                    }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column {
+                    Text("Invested", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
+                    Text(
+                        text = "₹${String.format("%,.0f", totalCost)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Current", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
+                    Text(
+                        text = "₹${String.format("%,.0f", stockValue)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("P/L", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
+                    Text(
+                        text = "${if (isProfit) "+" else ""}₹${String.format("%,.0f", profitLoss)} (${String.format("%.2f", plPercentage)}%)",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isProfit) SoftGreen else SoftRed
+                    )
                 }
             }
         }
