@@ -369,7 +369,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                                 }
                                 IconButton(
                                     onClick = { showFullscreenChat = false },
-                                    modifier = Modifier.size(28.dp)
+                                    modifier = Modifier.size(48.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
@@ -385,7 +385,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color.White)
+                                    .background(MaterialTheme.colorScheme.surface)
                                     .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -397,7 +397,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp)) },
                                     trailingIcon = {
                                         if (searchQuery.isNotEmpty()) {
-                                            IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(24.dp)) {
+                                            IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(48.dp)) {
                                                 Icon(Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(14.dp))
                                             }
                                         }
@@ -407,8 +407,8 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedBorderColor = BluePrimary,
                                         unfocusedBorderColor = BorderColor,
-                                        focusedContainerColor = Color(0xFFF8F9FC),
-                                        unfocusedContainerColor = Color(0xFFF8F9FC)
+                                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
                                     ),
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.weight(1f)
@@ -453,16 +453,10 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 if (filteredChat.isEmpty()) {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = if (searchQuery.isNotEmpty()) "No messages matching '$searchQuery'" else "No messages matching requirements yet.",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = TextSubtle
-                                        )
-                                    }
+                                    ChatEmptyState(
+                                        title = if (searchQuery.isNotEmpty()) "No matching messages" else "No family messages yet",
+                                        message = if (searchQuery.isNotEmpty()) "Try a different sender, stock symbol, or keyword." else "Start with a short decision note, or attach a holding/watchlist symbol for context."
+                                    )
                                 } else {
                                     for (chat in filteredChat) {
                                         ChatBubbleItem(chat, watchlistItems, onSystemClick = { viewModel.selectTab(2) })
@@ -472,7 +466,7 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
 
                             HorizontalDivider(color = BorderColor)
 
-                            Box(modifier = Modifier.background(Color.White)) {
+                            Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
                                 ChatInputBar(
                                     onSend = { text, recStock -> 
                                         viewModel.sendChatMessage("Me", text, recStock)
@@ -517,11 +511,11 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                         }
                         IconButton(
                             onClick = { showFullscreenChat = true },
-                            modifier = Modifier.size(28.dp).testTag("open_chat_new_window_btn")
+                            modifier = Modifier.size(48.dp).testTag("open_chat_new_window_btn")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Share,
-                                contentDescription = "Open full chat",
+                                contentDescription = "Open full family chat",
                                 tint = BluePrimary,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -539,8 +533,15 @@ fun HomeDashboardTab(viewModel: DashboardViewModel) {
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        for (chat in chatHistory) {
-                            ChatBubbleItem(chat, watchlistItems, onSystemClick = { viewModel.selectTab(2) })
+                        if (chatHistory.isEmpty()) {
+                            ChatEmptyState(
+                                title = "No family messages yet",
+                                message = "Use this thread for decisions, transaction notes, and watchlist context."
+                            )
+                        } else {
+                            chatHistory.takeLast(8).forEach { chat ->
+                                ChatBubbleItem(chat, watchlistItems, onSystemClick = { viewModel.selectTab(2) })
+                            }
                         }
                     }
 
@@ -752,6 +753,40 @@ private fun EmptyHomeState(title: String, message: String) {
 }
 
 @Composable
+private fun ChatEmptyState(title: String, message: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .padding(18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.ChatBubbleOutline,
+            contentDescription = null,
+            tint = TextSubtle,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = TextDark,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = TextSubtle,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
 fun ChatBubbleItem(
     chat: ChatMessage,
     watchlistItems: List<WatchlistItem>,
@@ -768,15 +803,17 @@ fun ChatBubbleItem(
                 .padding(vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) {
-            val alertBg = if (isDark) Color(0xFF1E1E1E) else Color(0xFFF5F5F5)
-            val alertBorder = if (isDark) Color(0xFF333333) else Color(0xFFE0E0E0)
-            val alertText = if (isDark) Color(0xFFB0B0B0) else Color(0xFF616161)
+            val alertBg = if (isDark) Color(0xFF1E252E) else Color(0xFFF4F7FB)
+            val alertBorder = if (isDark) Color(0xFF304050) else BorderColor
+            val alertText = if (isDark) Color(0xFFD4DCE6) else TextDark
 
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = alertBg,
                 border = BorderStroke(1.dp, alertBorder),
                 modifier = Modifier
+                    .widthIn(max = 320.dp)
+                    .heightIn(min = 44.dp)
                     .then(
                         if (onSystemClick != null) {
                             Modifier.clickable { onSystemClick() }
@@ -784,15 +821,15 @@ fun ChatBubbleItem(
                     )
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Info,
-                        contentDescription = null,
+                        contentDescription = "System message",
                         tint = alertText,
-                        modifier = Modifier.size(12.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                     Text(
                         text = chat.message,
@@ -830,7 +867,7 @@ fun ChatBubbleItem(
 
             Column(
                 horizontalAlignment = if (isMe) Alignment.End else Alignment.Start,
-                modifier = Modifier.widthIn(max = 280.dp)
+                modifier = Modifier.widthIn(max = 320.dp)
             ) {
                 Surface(
                     shape = RoundedCornerShape(
@@ -861,14 +898,14 @@ fun ChatBubbleItem(
                                     ),
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
-                                    Column(modifier = Modifier.padding(10.dp)) {
+                                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                text = "WATCH: ${match.symbol}",
+                                                text = "Attached: ${match.symbol}",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Bold,
                                                 color = if (isMe) Color.White else BluePrimary
@@ -880,29 +917,30 @@ fun ChatBubbleItem(
                                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                                             ) {
                                                 Text(
-                                                    text = if (match.isTriggered) "HIT" else "WAITING",
-                                                    fontSize = 8.sp,
+                                                    text = if (match.isTriggered) "Target reached" else "Watching",
+                                                    style = MaterialTheme.typography.labelSmall,
                                                     fontWeight = FontWeight.ExtraBold,
                                                     color = if (match.isTriggered || isMe) Color.White else Color(0xFFE65100)
                                                 )
                                             }
                                         }
-                                        Spacer(modifier = Modifier.height(6.dp))
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                                         ) {
                                             Text(
                                                 text = "₹${String.format("%,.2f", match.currentPrice)}",
                                                 style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (isMe) Color.White else TextDark
+                                                color = if (isMe) Color.White else TextDark,
+                                                modifier = Modifier.weight(1f)
                                             )
                                             Text(
-                                                text = "→ ₹${String.format("%,.2f", match.targetPrice)}",
+                                                text = "Target ₹${String.format("%,.2f", match.targetPrice)}",
                                                 style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = FontWeight.Bold,
-                                                color = if (isMe) Color.White.copy(alpha = 0.8f) else Color(0xFFE65100)
+                                                color = if (isMe) Color.White.copy(alpha = 0.8f) else Color(0xFFE65100),
+                                                modifier = Modifier.weight(1f)
                                             )
                                         }
                                     }
@@ -942,27 +980,31 @@ fun ChatInputBar(
         if (selectedRecSymbol != null) {
             Surface(
                 color = BluePrimary.copy(alpha = 0.1f),
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.padding(bottom = 8.dp)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .heightIn(min = 48.dp)
                         .padding(horizontal = 12.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "📎 Attached Stock: ${selectedRecSymbol}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = BluePrimary,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(Icons.Default.Link, contentDescription = null, tint = BluePrimary, modifier = Modifier.size(16.dp))
+                        Text(
+                            text = "Attached stock: ${selectedRecSymbol}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = BluePrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     IconButton(
                         onClick = { selectedRecSymbol = null },
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(48.dp)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Remove Attachment", tint = BluePrimary, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.Close, contentDescription = "Remove attached stock", tint = BluePrimary, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -975,9 +1017,11 @@ fun ChatInputBar(
         ) {
             IconButton(
                 onClick = { expandedRecommendation = !expandedRecommendation },
-                modifier = Modifier.background(BluePrimary.copy(alpha = 0.1f), CircleShape).size(36.dp)
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(BluePrimary.copy(alpha = 0.1f), CircleShape)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Attach", tint = BluePrimary, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Add, contentDescription = "Attach stock", tint = BluePrimary, modifier = Modifier.size(20.dp))
             }
 
             OutlinedTextField(
@@ -1002,7 +1046,7 @@ fun ChatInputBar(
                 singleLine = true,
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = 40.dp)
+                    .heightIn(min = 48.dp)
             )
 
             FloatingActionButton(
@@ -1016,10 +1060,10 @@ fun ChatInputBar(
                 containerColor = BluePrimary,
                 contentColor = Color.White,
                 shape = CircleShape,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(48.dp),
                 elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp)
             ) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", modifier = Modifier.size(18.dp))
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send message", modifier = Modifier.size(18.dp))
             }
         }
 
@@ -1028,7 +1072,7 @@ fun ChatInputBar(
             onDismissRequest = { expandedRecommendation = false }
         ) {
             DropdownMenuItem(
-                text = { Text("No attachment") },
+                text = { Text("No stock attachment") },
                 onClick = {
                     selectedRecSymbol = null
                     expandedRecommendation = false
@@ -1036,7 +1080,7 @@ fun ChatInputBar(
             )
             stocksList.forEach { stock ->
                 DropdownMenuItem(
-                    text = { Text("Link Asset: ${stock.symbol}") },
+                    text = { Text("Holding: ${stock.symbol}") },
                     onClick = {
                         selectedRecSymbol = stock.symbol
                         expandedRecommendation = false
@@ -1045,7 +1089,7 @@ fun ChatInputBar(
             }
             watchlistList.forEach { item ->
                 DropdownMenuItem(
-                    text = { Text("Link Watch: ${item.symbol}") },
+                    text = { Text("Watchlist: ${item.symbol}") },
                     onClick = {
                         selectedRecSymbol = item.symbol
                         expandedRecommendation = false

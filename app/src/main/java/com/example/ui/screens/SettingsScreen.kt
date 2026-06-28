@@ -72,19 +72,19 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
             border = BorderStroke(1.dp, BorderColor)
         ) {
             Column(modifier = Modifier.padding(18.dp)) {
-                Text(
-                    text = "Account & Profile",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = BluePrimary
-                )
-                Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Account & Profile",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = BluePrimary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = currentUser?.fullName ?: "Unknown User",
                             fontSize = 15.sp,
@@ -119,7 +119,6 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
             }
         }
 
-        // 👥 CONNECTED PORTFOLIO MEMBERS
         val groupMembers by viewModel.groupMembers.collectAsStateWithLifecycle()
         if (currentGroup != null) {
             Card(
@@ -135,7 +134,7 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Active Portfolio Members",
+                            text = "Family Members",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = BluePrimary
@@ -147,7 +146,7 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Text(
-                                text = "Invite Code: ${currentGroup?.inviteCode}",
+                                text = "Invite ${currentGroup?.inviteCode}",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = SoftGreen
@@ -156,7 +155,7 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "Members in this family group can record buy/sell activity, track alerts, and view portfolio research notes.",
+                        text = "Members can record portfolio activity, maintain alerts, and view shared research notes on this device.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSubtle,
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -232,7 +231,6 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
             }
         }
 
-        // 🎨 APP THEME SELECTION
         val appTheme by viewModel.appTheme.collectAsStateWithLifecycle()
         Card(
             shape = RoundedCornerShape(24.dp),
@@ -242,7 +240,7 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
         ) {
             Column(modifier = Modifier.padding(18.dp)) {
                 Text(
-                    text = "Experience & App Theme",
+                    text = "App Theme",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = BluePrimary
@@ -260,9 +258,9 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val themes = listOf(
-                        "LIGHT" to "☀️ Light",
-                        "DARK" to "🌙 Dark",
-                        "SYSTEM" to "📱 Device"
+                        "LIGHT" to "Light",
+                        "DARK" to "Dark",
+                        "SYSTEM" to "Device"
                     )
                     themes.forEach { (key, label) ->
                         val isSelected = appTheme == key
@@ -294,14 +292,14 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
         ) {
             Column(modifier = Modifier.padding(18.dp)) {
                 Text(
-                    text = "Upload Brokerage Statement (CSV/XLSX)",
+                    text = "Portfolio Import",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = BluePrimary
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = "Import an exported broker statement, such as Zerodha Kite, Groww, or Upstox CSV/XLSX, to replace this family group's portfolio holdings.",
+                    text = "Import an exported broker statement, such as Zerodha Kite, Groww, or Upstox CSV/XLSX. Import replaces this family group's current holdings.",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSubtle
                 )
@@ -324,7 +322,7 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
                 ) {
                     Icon(Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Select & Import Statement File", fontWeight = FontWeight.Bold)
+                    Text("Select CSV/XLSX Statement", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -333,22 +331,37 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
 
         Card(
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFECEB)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             border = BorderStroke(1.dp, Color(0xFFFFD1CF))
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "API Key Handling",
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                    color = SoftRed
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "For local development, keep GEMINI_API_KEY and STOCK_INDIAN_API_KEY in the ignored .env file. Do not commit real keys. For production, route market and AI calls through a backend because keys packaged in an APK can be extracted.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextDark,
-                    lineHeight = 17.sp
-                )
+            Row(
+                modifier = Modifier.padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(SoftRed.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Key, contentDescription = null, tint = SoftRed, modifier = Modifier.size(18.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "API Key Handling",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        color = TextDark
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "For local development, keep GEMINI_API_KEY and STOCK_INDIAN_API_KEY in the ignored .env file. Do not commit real keys. For production, route market and AI calls through a backend because keys packaged in an APK can be extracted.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSubtle,
+                        lineHeight = 17.sp
+                    )
+                }
             }
         }
 
@@ -366,23 +379,41 @@ fun SettingsAndEducationTab(viewModel: DashboardViewModel) {
                 )
                 Spacer(modifier = Modifier.height(10.dp))
 
-                Text(text = "1. Shared Cloud Database", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = TextDark)
-                Text(
-                    text = "Room stores data on the current device. To sync across family devices, add a backend or managed database such as Firebase Firestore or Supabase with proper auth rules.",
-                    fontSize = 11.sp, color = TextSubtle, lineHeight = 16.sp, modifier = Modifier.padding(bottom = 10.dp)
+                val notes = listOf(
+                    "Shared database" to "Room stores data on the current device. To sync across family devices, add a backend or managed database such as Firebase Firestore or Supabase with proper auth rules.",
+                    "Backend proxy" to "Use a small backend service to call Gemini and IndianAPI with server-held keys. The Android app should request only the data it needs from that backend.",
+                    "Private distribution" to "For family testing, share debug or release builds privately through a trusted channel or Firebase App Distribution. Use Play Console when you need managed releases and updates."
                 )
-
-                Text(text = "2. Backend Proxy", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = TextDark)
-                Text(
-                    text = "Use a small backend service to call Gemini and IndianAPI with server-held keys. The Android app should request only the data it needs from that backend.",
-                    fontSize = 11.sp, color = TextSubtle, lineHeight = 16.sp, modifier = Modifier.padding(bottom = 10.dp)
-                )
-
-                Text(text = "3. Private APK Distribution", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = TextDark)
-                Text(
-                    text = "For family testing, share debug or release builds privately through a trusted channel or Firebase App Distribution. Use Play Console when you need managed releases, updates, and broader distribution.",
-                    fontSize = 11.sp, color = TextSubtle, lineHeight = 16.sp
-                )
+                notes.forEachIndexed { index, (title, body) ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(BluePrimary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "${index + 1}",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BluePrimary
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = title, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = TextDark)
+                            Text(
+                                text = body,
+                                fontSize = 11.sp,
+                                color = TextSubtle,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+                    if (index < notes.lastIndex) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
             }
         }
     }

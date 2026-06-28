@@ -44,6 +44,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.*
 import com.example.ui.*
+import com.example.ui.components.ShimmerLine
 import com.example.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -54,6 +55,8 @@ import java.util.concurrent.TimeUnit
 fun AlertsManagerTab(viewModel: DashboardViewModel) {
     val watchlistItems by viewModel.watchlistItems.collectAsStateWithLifecycle()
     val newsList by viewModel.stockNews.collectAsStateWithLifecycle()
+    val isNewsLoading by viewModel.isStockNewsLoading.collectAsStateWithLifecycle()
+    val newsError by viewModel.stockNewsError.collectAsStateWithLifecycle()
     val isDark = MaterialTheme.colorScheme.background.red < 0.5f
 
     LazyColumn(
@@ -63,7 +66,6 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // --- FAMILY SHARED WATCHLIST ---
         item {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp),
@@ -71,7 +73,7 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "⭐ Family Shared Watchlist",
+                    text = "Family Shared Watchlist",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFFFF9800)
@@ -137,6 +139,7 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
             } else {
                 if (item.currentPrice > 0) (item.targetPrice / item.currentPrice) * 100 else 0.0
             }
+            val distanceToTarget = kotlin.math.abs(item.targetPrice - item.currentPrice)
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
@@ -196,10 +199,10 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
                                     )
                                 }
                             ) {
-                                Icon(Icons.Default.Share, contentDescription = "Share item", tint = BluePrimary, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Share, contentDescription = "Share watchlist update", tint = BluePrimary, modifier = Modifier.size(18.dp))
                             }
                             IconButton(onClick = { viewModel.deleteWatchlistItem(item.id) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete item", tint = TextSubtle, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Delete, contentDescription = "Delete watchlist item", tint = TextSubtle, modifier = Modifier.size(18.dp))
                             }
                         }
                     }
@@ -208,9 +211,9 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text("Current Price", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
                             Text(
                                 text = "₹" + String.format("%,.2f", item.currentPrice),
@@ -219,7 +222,7 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                        Column(horizontalAlignment = Alignment.End) {
+                        Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                             Text("Target Alert Price", style = MaterialTheme.typography.labelSmall, color = TextSubtle)
                             Text(
                                 text = "₹" + String.format("%,.2f", item.targetPrice),
@@ -231,37 +234,32 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(CircleShape)
-                            .background(BackgroundGray)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(fraction = (percentToTarget / 100.0).coerceIn(0.01..1.0).toFloat())
-                                .clip(CircleShape)
-                                .background(if (item.isTriggered) SoftGreen else Color(0xFFFF9800))
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    HorizontalDivider(color = BorderColor.copy(alpha = 0.55f))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (item.isTriggered) "Milestone completed! 🎉" else "Watch progress: ${String.format("%.1f", percentToTarget.coerceAtMost(100.0))}%",
+                            text = if (item.isTriggered) "Target reached" else "${String.format("%.1f", percentToTarget.coerceAtMost(100.0))}% of target",
                             style = MaterialTheme.typography.labelSmall,
-                            color = TextSubtle
+                            color = TextSubtle,
+                            modifier = Modifier.weight(1f)
                         )
+                        if (!item.isTriggered) {
+                            Text(
+                                text = "₹${String.format("%,.2f", distanceToTarget)} away",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFFFF9800),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // --- WATCHLIST NEWS ---
         item {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp),
@@ -269,7 +267,7 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Family Asset News",
+                    text = "Saved Symbol News",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = BluePrimary
@@ -290,16 +288,49 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
             }
         }
 
-        if (newsList.isEmpty()) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, BorderColor)
-                ) {
-                    Box(modifier = Modifier.fillMaxWidth().padding(20.dp), contentAlignment = Alignment.Center) {
-                        Text("No recent news for saved symbols yet.", color = TextSubtle)
+        when {
+            isNewsLoading -> {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, BorderColor)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            ShimmerLine(0.55f)
+                            ShimmerLine(0.95f)
+                            ShimmerLine(0.7f)
+                        }
+                    }
+                }
+            }
+            newsList.isEmpty() -> {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, BorderColor)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null, tint = TextSubtle, modifier = Modifier.size(28.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("No recent news for saved symbols yet.", color = TextDark, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                newsError ?: "News appears after you add watchlist symbols or portfolio holdings.",
+                                color = TextSubtle,
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
@@ -334,7 +365,7 @@ fun AlertsManagerTab(viewModel: DashboardViewModel) {
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = news.source,
+                                text = news.source.ifBlank { "Market news" },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextSubtle,
                                 fontWeight = FontWeight.Medium
